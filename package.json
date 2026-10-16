@@ -1,0 +1,15 @@
+{
+  "name": "solar-conquest",
+  "version": "0.28.0",
+  "private": true,
+  "description": "Solar Conquest — jeu de conquête spatiale multijoueur dans le navigateur (serveur de jeu + client)",
+  "main": "server/server.js",
+  "scripts": {
+    "start": "node server/server.js",
+    "build": "node tools/build.mjs"
+  },
+  "engines": { "node": ">=18" },
+  "dependencies": {
+    "ws": "^8.18.0"
+  }
+}

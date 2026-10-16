@@ -1,0 +1,10 @@
+# Configuration Render (« Blueprint ») : un service web Node.js gratuit en Europe
+services:
+  - type: web
+    name: solar-conquest
+    runtime: node
+    region: frankfurt
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /

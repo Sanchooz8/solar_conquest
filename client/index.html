@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Solar Conquest</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<canvas id="game"></canvas>
+
+<!-- ===== MENU DE DÉPART ===== -->
+<div id="menu" class="overlay">
+  <!-- Compte (en haut à droite) -->
+  <div class="acct-chip" id="acct-chip">
+    <button class="link-btn" id="btn-account">Se connecter · S'inscrire</button>
+    <span class="acct-hint">pour conserver vos statistiques</span>
+  </div>
+
+  <!-- Écran 1 : accueil -->
+  <section class="lobby-screen" id="scr-home">
+    <div class="home-head">
+      <div class="menu-kicker">STRATÉGIE TEMPS RÉEL — MULTIJOUEUR</div>
+      <h1 class="game-title">SOLAR<br>CONQUEST</h1>
+    </div>
+
+    <label class="field pseudo-field" for="in-pseudo">
+      <span class="field-label">VOTRE PSEUDO</span>
+      <input id="in-pseudo" maxlength="16" autocomplete="nickname" placeholder="ex. Capitaine_Nova" spellcheck="false">
+      <span class="field-err" id="pseudo-err"></span>
+    </label>
+
+    <div class="home-grid">
+      <div class="panel glass">
+        <div class="panel-head"><span>PARTIES PUBLIQUES</span><button class="link-btn" id="btn-refresh">Actualiser</button></div>
+        <div class="games" id="games"></div>
+        <div class="join-code">
+          <span class="field-label">PARTIE PRIVÉE</span>
+          <div class="code-row">
+            <input id="in-code" maxlength="6" placeholder="CODE" spellcheck="false" autocomplete="off" aria-label="Code de la partie privée">
+            <button class="btn-sec" id="btn-join-code">Rejoindre</button>
+          </div>
+        </div>
+      </div>
+      <div class="panel glass panel-create">
+        <div class="panel-head"><span>NOUVELLE PARTIE</span></div>
+        <p class="panel-text">Choisissez le système, publique ou privée, et partagez le code avec vos amis.</p>
+        <button class="cta" id="btn-create">CRÉER UNE PARTIE</button>
+        <button class="btn-sec" id="btn-solo">Partie solo rapide contre 3 bots</button>
+      </div>
+    </div>
+    <div class="net-status" id="net-status"></div>
+  </section>
+
+  <!-- Écran 2 : créer une partie -->
+  <section class="lobby-screen" id="scr-create" hidden>
+    <div class="screen-title">Créer une partie</div>
+    <div class="panel glass form-panel">
+      <label class="field" for="in-gname">
+        <span class="field-label">NOM DE LA PARTIE</span>
+        <input id="in-gname" maxlength="28" spellcheck="false">
+      </label>
+      <div class="field">
+        <span class="field-label">VISIBILITÉ</span>
+        <div class="seg" role="radiogroup" aria-label="Visibilité">
+          <button class="seg-btn active" data-vis="public" role="radio" aria-checked="true">Publique</button>
+          <button class="seg-btn" data-vis="private" role="radio" aria-checked="false">Privée (code)</button>
+        </div>
+        <span class="field-help" id="vis-help">Visible dans la liste des parties publiques.</span>
+      </div>
+      <div class="menu-options">
+        <div class="opt-row">
+          <div class="opt-head"><span>JOUEURS MAX</span><span class="opt-val" id="val-maxp">4</span></div>
+          <input type="range" id="opt-maxp" min="2" max="6" value="4" step="1">
+        </div>
+        <div class="opt-row">
+          <div class="opt-head"><span>PLANÈTES</span><span class="opt-val" id="val-planets">7</span></div>
+          <input type="range" id="opt-planets" min="5" max="9" value="7" step="1">
+        </div>
+      </div>
+      <label class="check" for="opt-fill">
+        <input type="checkbox" id="opt-fill" checked>
+        <span>Compléter les places libres avec des bots au lancement</span>
+      </label>
+      <div class="form-actions">
+        <button class="btn-sec" id="btn-create-back">Retour</button>
+        <button class="cta" id="btn-create-go">CRÉER LE SALON</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Écran 3 : salon d'attente -->
+  <section class="lobby-screen" id="scr-lobby" hidden>
+    <div class="screen-title" id="lobby-name">—</div>
+    <div class="panel glass form-panel">
+      <div class="lobby-code">
+        <div>
+          <span class="field-label">CODE DE LA PARTIE</span>
+          <div class="code-big" id="lobby-code">——</div>
+        </div>
+        <button class="btn-sec" id="btn-copy-code">Copier</button>
+      </div>
+      <div class="lobby-meta" id="lobby-meta"></div>
+      <span class="field-label">JOUEURS</span>
+      <div class="slots" id="lobby-slots"></div>
+      <p class="field-help" id="lobby-note"></p>
+      <div class="form-actions">
+        <button class="btn-sec" id="btn-lobby-leave">Quitter le salon</button>
+        <button class="cta" id="btn-start">LANCER LA PARTIE</button>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- ===== COMPTE : connexion / inscription ===== -->
+<div id="acct" class="overlay modal" hidden>
+  <div class="panel glass acct-panel" role="dialog" aria-modal="true" aria-labelledby="acct-title">
+    <div class="acct-top">
+      <div class="screen-title" id="acct-title">Votre compte</div>
+      <button class="link-btn" id="acct-close" aria-label="Fermer">Fermer</button>
+    </div>
+    <p class="panel-text">Un compte conserve vos statistiques : parties jouées, victoires, territoires conquis. Il reste facultatif pour jouer.</p>
+    <div class="seg" role="tablist">
+      <button class="seg-btn active" data-tab="login" role="tab" aria-selected="true">Connexion</button>
+      <button class="seg-btn" data-tab="register" role="tab" aria-selected="false">Inscription</button>
+    </div>
+    <button class="btn-google" id="btn-google">Continuer avec Google</button>
+    <div class="or"><span>ou par e-mail</span></div>
+    <form id="acct-form" novalidate>
+      <label class="field reg-only" for="in-rpseudo" hidden>
+        <span class="field-label">PSEUDO</span>
+        <input id="in-rpseudo" maxlength="16" autocomplete="nickname" spellcheck="false">
+      </label>
+      <label class="field" for="in-email">
+        <span class="field-label">E-MAIL</span>
+        <input id="in-email" type="email" autocomplete="email" spellcheck="false">
+      </label>
+      <label class="field" for="in-pass">
+        <span class="field-label">MOT DE PASSE</span>
+        <input id="in-pass" type="password" autocomplete="current-password">
+      </label>
+      <label class="field reg-only" for="in-pass2" hidden>
+        <span class="field-label">CONFIRMER LE MOT DE PASSE</span>
+        <input id="in-pass2" type="password" autocomplete="new-password">
+      </label>
+      <div class="field-err" id="acct-err" role="alert"></div>
+      <button class="cta" type="submit" id="acct-submit">SE CONNECTER</button>
+    </form>
+  </div>
+</div>
+
+<!-- ===== HUD EN PARTIE ===== -->
+<div id="hud" hidden>
+  <!-- Barre du joueur, en haut au centre : argent et population, puis bâtiments -->
+  <div id="topbar" class="glass">
+    <div class="tb-line">
+      <span class="tb-stat"><span class="tb-label">ARGENT</span><b id="stat-money">0</b><span class="tb-rate" id="stat-moneygrowth">+0/s</span></span>
+      <span class="tb-sep" aria-hidden="true"></span>
+      <span class="tb-stat"><span class="tb-label">POPULATION</span><b id="stat-pop">0</b><span class="tb-max" id="stat-popmax">/ 0</span><span class="tb-rate" id="stat-growth">+0/s</span></span>
+    </div>
+    <div class="tb-buildings" id="tb-buildings"></div>
+  </div>
+
+  <!-- Tableau des joueurs : couleur, population / max, argent, alliances -->
+  <div id="scoreboard" class="glass">
+    <div class="sb-head"><span>JOUEURS</span><span class="sb-hint">clic droit : diplomatie</span></div>
+    <div id="sb-rows"></div>
+  </div>
+
+  <!-- Proposition d'alliance reçue : notification très visible -->
+  <div id="allyask" class="glass" hidden>
+    <div class="aa-kicker">PROPOSITION D'ALLIANCE</div>
+    <div class="aa-text"><span class="dot" id="aa-dot"></span><b id="aa-name">—</b> vous propose une alliance de 5 minutes</div>
+    <div class="aa-sub">Pendant l'alliance, vous ne pourrez plus vous attaquer l'un l'autre.</div>
+    <div class="aa-actions">
+      <button class="aa-btn aa-yes" id="aa-yes">Accepter</button>
+      <button class="aa-btn aa-no" id="aa-no">Refuser</button>
+    </div>
+    <div class="aa-timer"><i id="aa-bar"></i></div>
+  </div>
+
+  <!-- Fiche d'alliances au survol d'un pseudo -->
+  <div id="sbtip" class="glass" hidden></div>
+
+  <!-- Menu contextuel de diplomatie (clic droit sur un joueur) -->
+  <div id="ctxmenu" class="glass" hidden>
+    <div class="cm-head"><span class="dot" id="cm-dot"></span><b id="cm-name">—</b></div>
+    <button class="cm-item" id="cm-action"></button>
+    <div class="cm-note" id="cm-note"></div>
+  </div>
+
+  <!-- Alerte de trahison -->
+  <div id="betrayal" class="glass" hidden>
+    <div class="bt-kicker">TRAHISON</div>
+    <div class="bt-text" id="bt-text"></div>
+    <div class="bt-sub" id="bt-sub"></div>
+  </div>
+
+  <!-- Volet d'information planète (survol), en haut à droite -->
+  <div id="planetinfo" class="glass" hidden>
+    <div class="pi-name" id="pi-name">—</div>
+    <div class="pi-row"><span>Population</span><b id="pi-pop">0</b></div>
+    <div id="pi-players"></div>
+    <div class="pi-sep"></div>
+    <div class="pi-bgrid" id="pi-buildings"></div>
+  </div>
+  <div id="prompt" class="glass" hidden></div>
+
+  <!-- Barre de construction : visible quand une planète est verrouillée -->
+  <div id="buildbar" class="glass" hidden>
+    <button class="bbtn" id="bb-city">
+      <span class="bbtn-name">Ville</span>
+      <span class="bbtn-cost"></span>
+    </button>
+    <button class="bbtn" id="bb-industry">
+      <span class="bbtn-name">Industrie</span>
+      <span class="bbtn-cost"></span>
+    </button>
+    <button class="bbtn" id="bb-silo">
+      <span class="bbtn-name">Silo</span>
+      <span class="bbtn-cost"></span>
+    </button>
+    <button class="bbtn" id="bb-shield">
+      <span class="bbtn-name">Bouclier</span>
+      <span class="bbtn-cost"></span>
+    </button>
+    <button class="bbtn" id="bb-colony">
+      <span class="bbtn-name">Colonisation</span>
+      <span class="bbtn-cost"></span>
+    </button>
+    <button class="bbtn" id="bb-tradeport">
+      <span class="bbtn-name">Port de commerce</span>
+      <span class="bbtn-cost"></span>
+    </button>
+    <button class="bbtn" id="bb-military">
+      <span class="bbtn-name">Base militaire</span>
+      <span class="bbtn-cost"></span>
+    </button>
+    <button class="bbtn" id="bb-aa">
+      <span class="bbtn-name">DAA</span>
+      <span class="bbtn-cost"></span>
+    </button>
+    <button class="bbtn" id="bb-spaceport">
+      <span class="bbtn-name">Spatioport</span>
+      <span class="bbtn-cost"></span>
+    </button>
+  </div>
+
+  <!-- Panneau missiles : bas à droite, visible si la planète verrouillée a des silos -->
+  <div id="missilebar" class="glass" hidden>
+    <div class="ms-left" id="ms-ctl">
+      <span class="stat-label">NOMBRE DE MISSILES</span>
+      <div class="ms-stepper">
+        <button class="mbtn" id="ms-minus">−</button>
+        <span class="stat-value" id="ms-value">1</span>
+        <button class="mbtn" id="ms-plus">+</button>
+      </div>
+      <div class="ms-silos" id="ms-silos" aria-label="État des silos de la planète"></div>
+      <span class="ms-reload" id="ms-reload"></span>
+    </div>
+    <button id="btn-launch" class="hbtn btn-launch">LANCEMENT<br>MISSILES</button>
+    <div class="ms-left" id="co-ctl" hidden>
+      <span class="stat-label">COLONS (% POP. PLANÈTE)</span>
+      <div class="ms-stepper">
+        <button class="mbtn" id="co-minus">−</button>
+        <span class="stat-value" id="co-value">25 %</span>
+        <button class="mbtn" id="co-plus">+</button>
+      </div>
+    </div>
+    <button id="btn-colony" class="hbtn btn-colony" hidden>LANCEMENT<br>COLONISATION</button>
+    <div class="ms-left" id="fl-ctl" hidden>
+      <span class="stat-label">VAISSEAUX · <span id="fl-stock">0</span> EN STOCK</span>
+      <div class="ms-stepper">
+        <button class="mbtn" id="fl-minus">−</button>
+        <span class="stat-value" id="fl-value">0</span>
+        <button class="mbtn" id="fl-plus">+</button>
+      </div>
+      <button class="fl-build" id="fl-build">+1 vaisseau · <span id="fl-cost">200</span> $</button>
+    </div>
+    <button id="btn-fleet" class="hbtn btn-fleet" hidden>LANCEMENT<br>FLOTTE</button>
+  </div>
+</div>
+
+<!-- ===== ÉCRAN DE FIN ===== -->
+<div id="endscreen" class="overlay" hidden>
+  <div class="menu-inner">
+    <div class="menu-kicker" id="end-kicker">PARTIE TERMINÉE</div>
+    <h1 class="game-title" id="end-title">VICTOIRE</h1>
+    <p class="menu-sub" id="end-sub"></p>
+    <button id="btn-restart" class="cta">REJOUER</button>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script src="js/config.js"></script>
+<script src="js/world.js"></script>
+<script src="js/game.js"></script>
+<script src="js/fleet.js"></script>
+<script src="js/diplomacy.js"></script>
+<script src="js/net.js"></script>
+<script src="js/ai.js"></script>
+<script src="js/session.js"></script>
+<script src="js/online.js"></script>
+<script src="js/render.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/lobby.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
