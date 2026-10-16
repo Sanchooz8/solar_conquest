@@ -16,7 +16,7 @@ const CONFIG = {
   // Vide : mode local (solo et salons de test). On peut aussi tester un autre
   // serveur en ajoutant ?server=wss://… à l'adresse de la page.
   server: {
-    url: '',
+    url: 'wss://solar-conquest.onrender.com',
   },
 
   system: {
