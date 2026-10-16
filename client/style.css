@@ -959,7 +959,7 @@ input[type="range"]::-webkit-slider-thumb {
 }
 
 /* Lancements : en bas à droite, plus compacts */
-#missilebar { right: 10px; bottom: 10px; gap: 8px; padding: 6px 8px; }
+#missilebar { right: 10px; bottom: 110px; gap: 8px; padding: 6px 8px; }
 #missilebar .stat-label { font-size: 8px; letter-spacing: 0.12em; }
 #missilebar .ms-left { gap: 3px; }
 #missilebar .ms-stepper { gap: 5px; }

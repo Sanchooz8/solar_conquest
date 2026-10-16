@@ -26,6 +26,7 @@ const Session = {
   snapT: 0,
   events: [],            // hôte : événements à joindre au prochain instantané
   fxQueue: [],           // hôte : explosions à rejouer chez les clients
+  fxLater: [],           // client : explosions reçues, jouées avec le retard d'affichage
   pending: new Map(),    // client : commandes en attente de réponse
   cmdSeq: 1,
   sentCraters: new Map(),// hôte : nombre de cratères déjà envoyés, par planète
@@ -53,7 +54,7 @@ const Session = {
     if (this.role === 'client' && G.phase !== 'menu') G.phase = 'over';
     this.transport = null; this.role = 'solo';
     this.seats.clear(); this.lastSeen.clear(); this.pending.clear();
-    this.events = []; this.fxQueue = []; this.hostPeer = null;
+    this.events = []; this.fxQueue = []; this.fxLater = []; this.hostPeer = null; Clock.offset = null;
   },
 };
 
@@ -256,18 +257,60 @@ function buildSnapshot(full) {
 
 // Objets en vol : on garde le même objet d'un instantané à l'autre (sa
 // traînée continue) et on le recale sur la position envoyée
-function syncFlying(list, rows, extra) {
+// Lissage : les objets en vol sont affichés avec un léger retard (INTERP),
+// en interpolant entre deux instantanés reçus. Sans cela, l'irrégularité du
+// réseau et les virages serrés (mini-missiles de DAA) donnaient des zigzags.
+const INTERP = 120;          // ms de retard d'affichage des objets en vol
+const Clock = { offset: null };
+
+// Heure locale (ms) correspondant à un instant de jeu du serveur, recalée
+// sur les arrivées les plus rapides (le jitter du réseau est ainsi ignoré)
+function stampFor(serverTime) {
+  const now = performance.now();
+  const off = now - serverTime * 1000;
+  if (Clock.offset === null || off < Clock.offset) Clock.offset = off;
+  else Clock.offset += (off - Clock.offset) * 0.02;
+  return serverTime * 1000 + Clock.offset;
+}
+
+function syncFlying(list, rows, extra, stamp) {
   const byId = new Map(list.map(o => [o.id, o]));
   const out = [];
   for (const r of rows) {
     let o = byId.get(r[0]);
-    if (!o) { o = { id: r[0], trail: [] }; }
-    o.x = r[1]; o.y = r[2]; o.vx = r[3]; o.vy = r[4]; o.owner = r[5];
+    if (!o) { o = { id: r[0], trail: [], buf: [], x: r[1], y: r[2], vx: r[3], vy: r[4] }; }
+    else byId.delete(r[0]);
+    o.buf.push({ t: stamp, x: r[1], y: r[2], vx: r[3], vy: r[4] });
+    if (o.buf.length > 8) o.buf.shift();
+    o.owner = r[5];
+    o.gone = false;
     o.color = G.players[o.owner] ? G.players[o.owner].color : '#ffffff';
     if (extra) extra(o, r);
     out.push(o);
   }
+  // Disparus côté serveur : encore affichés le temps du retard d'affichage
+  for (const o of byId.values()) { if (o.buf) { o.gone = true; out.push(o); } }
   return out;
+}
+
+// Position affichée d'un objet en vol à l'instant t (ms, horloge locale)
+function sampleFlying(o, t) {
+  const b = o.buf;
+  if (!b || !b.length) return true;
+  if (t <= b[0].t) { Object.assign(o, { x: b[0].x, y: b[0].y, vx: b[0].vx, vy: b[0].vy }); return true; }
+  for (let i = 1; i < b.length; i++) {
+    if (t <= b[i].t) {
+      const a = b[i - 1], c = b[i], k = (t - a.t) / Math.max(1, c.t - a.t);
+      o.x = a.x + (c.x - a.x) * k; o.y = a.y + (c.y - a.y) * k;
+      o.vx = a.vx + (c.vx - a.vx) * k; o.vy = a.vy + (c.vy - a.vy) * k;
+      return true;
+    }
+  }
+  const l = b[b.length - 1];
+  if (o.gone) return false; // fin de vol atteinte à l'écran : on le retire
+  const dt = Math.min(0.1, (t - l.t) / 1000); // petit prolongement si un instantané tarde
+  o.x = l.x + l.vx * dt; o.y = l.y + l.vy * dt; o.vx = l.vx; o.vy = l.vy;
+  return true;
 }
 
 function applySnapshot(s) {
@@ -301,10 +344,11 @@ function applySnapshot(s) {
     if (ready !== !!aaReady) c.aaT = aaReady ? CONFIG.aa.fireInterval : 0;
     c.contest = ct ? { attacker: ct[0], force: ct[1], defense: ct[2], initialDefense: ct[3], from: ct[4] >= 0 ? p.cells[0][ct[4]] : null } : null;
   }
-  G.missiles = syncFlying(G.missiles, s.mi);
-  G.modules = syncFlying(G.modules, s.mo, (o, r) => { o.hp = r[6]; });
-  G.cargos = syncFlying(G.cargos, s.ca);
-  G.flak = syncFlying(G.flak, s.fl);
+  const stamp = stampFor(s.t);
+  G.missiles = syncFlying(G.missiles, s.mi, null, stamp);
+  G.modules = syncFlying(G.modules, s.mo, (o, r) => { o.hp = r[6]; }, stamp);
+  G.cargos = syncFlying(G.cargos, s.ca, null, stamp);
+  G.flak = syncFlying(G.flak, s.fl, null, stamp);
   const shells = new Map(G.shells.map(o => [o.id, o]));
   G.shells = s.sh.map(r => {
     const p = G.planets[r[1]];
@@ -314,7 +358,8 @@ function applySnapshot(s) {
   });
   G.alliances = s.al.map(a => ({ a: a[0], b: a[1], until: a[2] }));
   G.allyRequests = s.rq.map(q => ({ from: q[0], to: q[1], expires: q[2] }));
-  for (const f of s.fx) spawnBurst(f[0], f[1], f[2], f[3], f[4]);
+  // Explosions : jouées avec le même retard que les objets en vol
+  for (const f of s.fx) Session.fxLater.push({ t: stamp, f });
   for (const ev of s.ev) clientEvent(ev);
 
   // Changements de phase
@@ -337,11 +382,18 @@ function clientEvent(ev) {
 // (planètes, objets en vol, jauges), sans rien décider
 function clientUpdate(dt) {
   G.time += dt;
+  const renderT = performance.now() - INTERP;
+  const later = Session.fxLater;
+  while (later.length && later[0].t <= renderT) { const f = later.shift().f; spawnBurst(f[0], f[1], f[2], f[3], f[4]); }
   updateParticles(dt);
   for (const p of G.planets) { p.orbitAngle += p.orbitSpeed * dt; p.rotation += p.spin * dt; }
   updatePlanetPositions(G.planets);
-  const move = (list, n) => { for (const o of list) { o.x += o.vx * dt; o.y += o.vy * dt; o.trail.push({ x: o.x, y: o.y }); if (o.trail.length > n) o.trail.shift(); } };
-  move(G.missiles, 26); move(G.modules, 30); move(G.cargos, 30); move(G.flak, 7);
+  const move = (list, n) => list.filter(o => {
+    if (!sampleFlying(o, renderT)) return false;
+    o.trail.push({ x: o.x, y: o.y }); if (o.trail.length > n) o.trail.shift();
+    return true;
+  });
+  G.missiles = move(G.missiles, 26); G.modules = move(G.modules, 30); G.cargos = move(G.cargos, 30); G.flak = move(G.flak, 7);
   for (const sh of G.shells) {
     sh.t = Math.min(1, sh.t + dt / CONFIG.military.shellFlightTime);
     sh.trail.push(shellPos(sh)); if (sh.trail.length > 8) sh.trail.shift();

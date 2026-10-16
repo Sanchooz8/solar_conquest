@@ -25,7 +25,7 @@ const Online = {
     let url = (typeof CONFIG.server === 'object' && CONFIG.server.url) || '';
     try {
       const q = new URLSearchParams(location.search).get('server');
-      if (q) url = q;
+      if (q) url = q === 'off' ? '' : q; // ?server=off : mode local (tests)
     } catch (e) { /* sans objet */ }
     this.url = url;
     if (!url) return false;
