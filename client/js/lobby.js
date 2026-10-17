@@ -78,8 +78,10 @@ async function refreshGames() {
 
 function renderNetStatus() {
   if (Net.online()) {
-    const up = Online.status === 'online';
-    const html = `<span class="led"${up ? ' style="background:#4ade80;box-shadow:0 0 6px #4ade80"' : ''}></span>` + Online.statusText();
+    const up = Online.status === 'online' && !Online.mismatch;
+    const html = `<span class="led"${up ? ' style="background:#4ade80;box-shadow:0 0 6px #4ade80"' : ''}></span>` + Online.statusText() +
+      (Online.mismatch ? ' <button class="link-btn" onclick="location.reload()">Recharger</button>' : '') +
+      ` <span class="ver">· v${APP_VERSION}</span>`;
     if (el('net-status').dataset.html !== html) { el('net-status').innerHTML = html; el('net-status').dataset.html = html; }
     return;
   }

@@ -24,6 +24,7 @@ const { WebSocketServer } = require('ws');
 const { startGame } = require('./sim');
 
 const PORT = process.env.PORT || 8080;
+const VERSION = require('../package.json').version;
 const TICK = 50;              // ms entre deux pas de simulation (20 / s)
 const SNAP_EVERY = 2;         // un instantané tous les 2 pas (10 / s)
 const REJOIN_GRACE = 60000;   // ms pour revenir après une coupure
@@ -219,7 +220,7 @@ function onMessage(client, raw) {
   switch (m.k) {
     case 'hello':
       client.pseudo = clean(m.pseudo, 16) || 'Pilote';
-      send(client.ws, { k: 'welcome', rejoined: m.token ? rejoin(client, String(m.token)) : false });
+      send(client.ws, { k: 'welcome', version: VERSION, rejoined: m.token ? rejoin(client, String(m.token)) : false });
       return;
     case 'ping': return;
     case 'list': send(client.ws, { k: 'list', games: publicList() }); return;
@@ -259,7 +260,7 @@ const server = http.createServer((req, res) => {
   const games = [...rooms.values()];
   res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*' });
   res.end(JSON.stringify({
-    ok: true, name: 'Solar Conquest',
+    ok: true, name: 'Solar Conquest', version: VERSION,
     rooms: games.length, playing: games.filter(r => r.status === 'playing').length,
     players: games.reduce((n, r) => n + r.seats.filter(s => s.ws).length, 0),
   }));
@@ -284,4 +285,4 @@ setInterval(() => {
   }
 }, 15000);
 
-server.listen(PORT, () => console.log(`Solar Conquest : serveur prêt sur le port ${PORT}`));
+server.listen(PORT, () => console.log(`Solar Conquest ${VERSION} : serveur prêt sur le port ${PORT}`));

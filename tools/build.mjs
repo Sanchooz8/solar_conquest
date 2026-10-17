@@ -10,7 +10,9 @@ const html = readFileSync(join(client, 'index.html'), 'utf8');
 const css = readFileSync(join(client, 'style.css'), 'utf8');
 
 const scripts = [...html.matchAll(/<script src="(js\/[^"]+)"><\/script>/g)].map(m => m[1]);
-const js = scripts.map(f => readFileSync(join(client, f), 'utf8')).join('\n');
+const version = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')).version;
+const js = scripts.map(f => readFileSync(join(client, f), 'utf8')).join('\n')
+  .replace("const APP_VERSION = 'dev';", `const APP_VERSION = '${version}';`);
 
 let out = html
   .replace('<link rel="stylesheet" href="style.css">', () => `<style>\n${css}\n</style>`)
@@ -19,4 +21,4 @@ let out = html
 
 mkdirSync(join(root, 'dist'), { recursive: true });
 writeFileSync(join(root, 'dist', 'index.html'), out);
-console.log(`dist/index.html : ${scripts.length} scripts, ${(out.length / 1024).toFixed(0)} Ko`);
+console.log(`dist/index.html : version ${version}, ${scripts.length} scripts, ${(out.length / 1024).toFixed(0)} Ko`);

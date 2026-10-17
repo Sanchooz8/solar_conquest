@@ -93,13 +93,21 @@ const Online = {
     if (i >= 0) { const w = this.waiting.splice(i, 1)[0]; clearTimeout(w.timer); w.resolve(m); }
 
     switch (m.k) {
-      case 'welcome':
+      case 'welcome': {
+        // Jeu et serveur doivent être à la même version
+        const before = this.serverVersion;
+        this.serverVersion = m.version || null;
+        this.mismatch = APP_VERSION !== 'dev' && !!m.version && m.version !== APP_VERSION;
         // Reconnexion pendant une partie qui n'existe plus
         if (!m.rejoined && this.inGame && Session.role === 'client' && G.phase !== 'over') {
           this.inGame = false; this.clearToken();
-          hostLost("La partie n'est plus disponible (coupure trop longue).");
+          hostLost(before && before !== m.version
+            ? 'Le serveur vient d\'être mis à jour : la partie a été interrompue. Rechargez la page pour rejouer.'
+            : "La partie n'est plus disponible (coupure trop longue).");
         }
+        if (this.mismatch && G.phase === 'menu') renderNetStatus();
         return;
+      }
       case 'joined':
         this.saveToken(m.token);
         this.setRoom(m.room);
@@ -138,7 +146,13 @@ const Online = {
     close() { Online.inGame = false; Online.clearToken(); }, // la connexion reste ouverte pour le menu
   },
 
+  mismatchText() {
+    return `Une nouvelle version du jeu est disponible (jeu ${APP_VERSION}, serveur ${this.serverVersion}). ` +
+      'Rechargez la page ; si ce message reste, réessayez dans une minute.';
+  },
+
   statusText() {
+    if (this.status === 'online' && this.mismatch) return this.mismatchText();
     if (this.status === 'online') return 'Connecté au serveur';
     const waited = this.firstFail ? (Date.now() - this.firstFail) / 1000 : 0;
     if (waited > 90) return 'Serveur injoignable pour le moment : vous pouvez jouer en solo en attendant.';

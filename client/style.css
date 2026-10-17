@@ -984,3 +984,6 @@ input[type="range"]::-webkit-slider-thumb {
 .home-grid { align-items: start; }
 .games { max-height: 340px; overflow-y: auto; padding-right: 2px; }
 .bbtn[hidden] { display: none !important; }
+
+/* Numéro de version (accueil) */
+.net-status .ver { opacity: 0.55; font-family: var(--font-mono); font-size: 11px; }

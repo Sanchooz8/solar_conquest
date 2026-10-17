@@ -31,6 +31,10 @@ cd client && python3 -m http.server 8000
 ## Mettre en ligne
 
 1. **Serveur (Render)** : New → Web Service → ce dépôt. Region Frankfurt, Build `npm install`, Start `npm start`, Instance Free. (Ou New → Blueprint, qui lit `render.yaml`.)
-2. **Jeu (Netlify)** : `npm run build`, puis glisser le dossier `dist` dans l'onglet *Deploys* du site Netlify.
+2. **Jeu (Netlify)** : le site Netlify est relié à ce dépôt ; à chaque mise à jour, il exécute `npm run build` et publie `dist/` (cf. `netlify.toml`). Sans liaison : `npm run build`, puis glisser le dossier `dist` dans l'onglet *Deploys*.
+
+## Versions
+
+Le numéro de version vient de `package.json` : le jeu l'affiche en bas de l'accueil et le serveur le donne à chaque connexion. Si le jeu et le serveur n'ont pas la même version, le jeu propose de recharger la page et n'ouvre pas de partie en ligne en attendant. Penser à augmenter la version à chaque mise à jour.
 
 L'offre gratuite de Render met le serveur en veille après 15 minutes sans joueur : le premier joueur suivant attend son réveil (environ une minute). Le jeu l'indique et réessaie tout seul.

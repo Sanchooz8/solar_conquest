@@ -74,6 +74,7 @@ const Net = {
   // Créer un salon (l'hôte choisit les options)
   // Demande au serveur : rejoindre ou créer un salon
   async onlineJoin(msg, pseudo) {
+    if (Online.mismatch) return { ok: false, msg: Online.mismatchText() };
     Online.send({ k: 'hello', pseudo });
     const m = await Online.request(msg, ['joined', 'error']);
     if (m.k !== 'joined') return { ok: false, msg: m.msg };
