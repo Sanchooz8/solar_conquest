@@ -197,6 +197,8 @@ const CONFIG = {
     growthRate: 2.8,          // croissance maximale (pop/s), atteinte à 45 % du plafond — pour un plafond de 100 (dépend de la pop max, divisée par 2 — équilibrage v2)
     growthInflection: 0.45,   // fraction du plafond où la croissance est la plus rapide
     cityGrowthMult: 1.6,      // multiplicateur de croissance avec ville
+    overpopDecay: 1.5,        // surpopulation : perte = 1,5 × (pop / plafond − 1) par seconde
+                              //   (× 3 du plafond → −3 /s, puis de plus en plus lentement)
   },
 
   combat: {

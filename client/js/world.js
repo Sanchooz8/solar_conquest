@@ -276,6 +276,10 @@ function shieldFrame(cell) {
 // elle accélère jusqu'à 45 % du plafond puis ralentit jusqu'à 100 %.
 function cellPopGrowth(cell) {
   const K = cellCap(cell);
+  // Surpopulation : la population décroît, d'autant plus vite qu'elle
+  // dépasse le plafond (× 3 du plafond → −3 /s), puis ralentit en
+  // approchant du plafond
+  if (cell.pop > K) return -CONFIG.pop.overpopDecay * (cell.pop / K - 1);
   if (cell.pop <= 0 || cell.pop >= K) return 0;
   const f = CONFIG.pop.growthInflection;         // 0.45
   const b = (1 - f) / f;

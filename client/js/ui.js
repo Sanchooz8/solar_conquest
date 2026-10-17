@@ -82,7 +82,7 @@ function updateHUD() {
   }
   el('stat-pop').textContent = Math.floor(pop);
   el('stat-popmax').textContent = '/ ' + cap;
-  el('stat-growth').textContent = '+' + growth.toFixed(1) + '/s';
+  el('stat-growth').textContent = (growth >= 0 ? '+' : '−') + Math.abs(growth).toFixed(1) + '/s';
   el('stat-moneygrowth').textContent = '+' + income.toFixed(1) + '/s';
 
   // Bâtiments du joueur : icônes + nombre, types absents masqués

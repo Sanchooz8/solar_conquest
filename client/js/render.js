@@ -120,7 +120,7 @@ function render(t) {
   if (UI.snap) drawAimRail(t, UI.aimingColony ? '#4ade80' : '#ffb347');
 
   // Viseur (en coordonnées écran)
-  if (UI.aiming) drawReticle(t, '#ff2a00');
+  if (UI.aiming) drawVolleyReticles(t);
   else if (UI.aimingColony) drawReticle(t, '#4ade80');
   else if (UI.aimingFleet) drawReticle(t, '#ffb347');
 }
@@ -936,6 +936,35 @@ function drawAimRail(t, color) {
   ctx.lineTo(p.x + Math.cos(sn.a) * p.radius, p.y + Math.sin(sn.a) * p.radius);
   ctx.stroke();
   ctx.restore();
+}
+
+// Visée de missiles : un petit viseur par missile, là où il va frapper
+// (le motif suit la disposition des silos qui tirent)
+function drawVolleyReticles(t) {
+  if (!UI.lock) { drawReticle(t, '#ff2a00'); return; }
+  const w = screenToWorld(UI.mouse.x, UI.mouse.y);
+  const shots = missileVolley(G.me, UI.lock, UI.missileCount, w);
+  if (shots.length <= 1) { drawReticle(t, '#ff2a00'); return; }
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  const color = '#ff2a00';
+  const pulse = 1 + 0.12 * Math.sin(t * 0.008);
+  // Repère discret au centre de la salve
+  ctx.strokeStyle = color; ctx.globalAlpha = 0.45; ctx.lineWidth = 1;
+  ctx.beginPath();
+  for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { ctx.moveTo(UI.mouse.x + dx * 3, UI.mouse.y + dy * 3); ctx.lineTo(UI.mouse.x + dx * 8, UI.mouse.y + dy * 8); }
+  ctx.stroke();
+  ctx.globalAlpha = 0.9; ctx.lineWidth = 1.4;
+  for (const s of shots) {
+    const x = W / 2 + (s.target.x - UI.cam.x) * UI.cam.zoom;
+    const y = H / 2 + (s.target.y - UI.cam.y) * UI.cam.zoom;
+    const r = 7 * pulse;
+    ctx.beginPath(); ctx.arc(x, y, r, 0, TAU()); ctx.stroke();
+    ctx.beginPath();
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { ctx.moveTo(x + dx * (r - 3), y + dy * (r - 3)); ctx.lineTo(x + dx * (r + 4), y + dy * (r + 4)); }
+    ctx.stroke();
+    ctx.fillStyle = color; ctx.beginPath(); ctx.arc(x, y, 1.4, 0, TAU()); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
 }
 
 function drawReticle(t, color = '#ff2a00') {

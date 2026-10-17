@@ -329,15 +329,35 @@ function planetVelocity(p) {
 
 // Tir groupé : un missile part de chaque silo disponible (jusqu'à `count`),
 // monte en orbite puis part vers la cible, trajectoire courbée par la gravité
+// Salve de missiles : les silos tournés vers la cible tirent en premier, et
+// chaque missile vise son propre point. Le motif des impacts reproduit la
+// disposition des silos (décalage de chaque silo par rapport au centre de la
+// salve) : un tir groupé fait un barrage, pas une file indienne.
+function missileVolley(playerId, planet, count, target) {
+  const dirOf = s => planet.rotation + (s.sector + 0.5) * planet.sectorAngle;
+  const aim = Math.atan2(target.y - planet.y, target.x - planet.x);
+  const silos = loadedSilos(playerId, planet)
+    .sort((a, b) => Math.abs(angleDiff(dirOf(a), aim)) - Math.abs(angleDiff(dirOf(b), aim)))
+    .slice(0, Math.max(0, count));
+  if (!silos.length) return [];
+  const pos = silos.map(s => {
+    const a = dirOf(s), r = s.rTop ?? planet.radius;
+    return { x: planet.x + Math.cos(a) * r, y: planet.y + Math.sin(a) * r };
+  });
+  const cx = pos.reduce((t, p) => t + p.x, 0) / pos.length;
+  const cy = pos.reduce((t, p) => t + p.y, 0) / pos.length;
+  return silos.map((silo, i) => ({ silo, target: { x: target.x + pos[i].x - cx, y: target.y + pos[i].y - cy } }));
+}
+
 function launchMissiles(player, planet, count, target) {
-  const silos = loadedSilos(player.id, planet);
-  const n = Math.min(count, silos.length);
+  const volley = missileVolley(player.id, planet, count, target);
+  const n = volley.length;
   if (n === 0) return { ok: false, msg: 'Aucun missile chargé sur cette planète' };
 
-  // La cible est le point exact visé par le joueur — les missiles corrigent
-  // leur cap vers ce point quoi qu'il arrive (pas de suivi des planètes)
-  for (let i = 0; i < n; i++) {
-    const silo = silos[i];
+  // Chaque missile corrige son cap vers SON point quoi qu'il arrive (pas de
+  // suivi des planètes)
+  for (const shot of volley) {
+    const silo = shot.silo;
     silo.missiles--;
     silo.reloadT = 0;
     const midA = planet.rotation + (silo.sector + 0.5) * planet.sectorAngle;
@@ -351,7 +371,7 @@ function launchMissiles(player, planet, count, target) {
       vx: out.x * CONFIG.missiles.riseSpeed,
       vy: out.y * CONFIG.missiles.riseSpeed,
       out, state: 'rise', riseT: 0, life: 0, flightT: 0, passed: false,
-      target: { x: target.x, y: target.y },
+      target: { x: shot.target.x, y: shot.target.y },
       home: planet, owner: player.id, color: player.color,
       trail: [],
     });
@@ -1364,11 +1384,12 @@ function update(dt) {
         }
         if (cell.shieldDown > 0) cell.shieldDown = Math.max(0, cell.shieldDown - dt);
         if (cell.owner === null || cell.contest) continue;
-        // Surpopulation (colons, garnisons) : jamais ramenée de force au
-        // plafond — elle s'use dans les combats ; la croissance ne joue
-        // que sous le plafond.
+        // Sous le plafond : croissance. Au-dessus (colons, garnisons) : la
+        // surpopulation se résorbe d'elle-même, vite au début puis de plus
+        // en plus lentement — il faut l'utiliser tant qu'elle est là.
         const cap = cellCap(cell);
         if (cell.pop < cap) cell.pop = Math.min(cap, cell.pop + cellPopGrowth(cell) * dt);
+        else if (cell.pop > cap) cell.pop = Math.max(cap, cell.pop + cellPopGrowth(cell) * dt);
       }
     }
 
