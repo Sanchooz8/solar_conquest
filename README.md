@@ -33,6 +33,17 @@ cd client && python3 -m http.server 8000
 1. **Serveur (Render)** : New → Web Service → ce dépôt. Region Frankfurt, Build `npm install`, Start `npm start`, Instance Free. (Ou New → Blueprint, qui lit `render.yaml`.)
 2. **Jeu (Netlify)** : le site Netlify est relié à ce dépôt ; à chaque mise à jour, il exécute `npm run build` et publie `dist/` (cf. `netlify.toml`). Sans liaison : `npm run build`, puis glisser le dossier `dist` dans l'onglet *Deploys*.
 
+## Comptes joueurs (Supabase)
+
+Les comptes (e-mail + mot de passe) sont gérés par Supabase ; ils restent facultatifs (on peut jouer en invité).
+
+1. Créer un projet sur supabase.com (région Europe), puis dans **SQL Editor** coller et exécuter `supabase/schema.sql`.
+2. **Authentication → URL Configuration** : *Site URL* = l'adresse du site Netlify (les liens de confirmation et de mot de passe oublié y renvoient).
+3. Dans `client/js/config.js` (`supabase`) : l'adresse du projet et la clé **publique** (*publishable* / *anon*).
+4. Sur Render, variables d'environnement du service : `SUPABASE_URL` et `SUPABASE_SERVICE_KEY` (clé **secrète** ; jamais dans le code).
+
+Le serveur vérifie le jeton de connexion de chaque joueur, réserve les pseudos des comptes (un invité ne peut pas les prendre) et enregistre chaque partie en ligne terminée (table `matches`, statistiques dans `player_stats`).
+
 ## Versions
 
 Le numéro de version vient de `package.json` : le jeu l'affiche en bas de l'accueil et le serveur le donne à chaque connexion. Si le jeu et le serveur n'ont pas la même version, le jeu propose de recharger la page et n'ouvre pas de partie en ligne en attendant. Penser à augmenter la version à chaque mise à jour.

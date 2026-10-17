@@ -122,13 +122,14 @@
       <div class="screen-title" id="acct-title">Votre compte</div>
       <button class="link-btn" id="acct-close" aria-label="Fermer">Fermer</button>
     </div>
-    <p class="panel-text">Un compte conserve vos statistiques : parties jouées, victoires, territoires conquis. Il reste facultatif pour jouer.</p>
+    <div id="acct-auth">
+    <p class="panel-text">Un compte réserve votre pseudo et conserve vos statistiques (parties jouées, victoires). Il reste facultatif pour jouer.</p>
     <div class="seg" role="tablist">
       <button class="seg-btn active" data-tab="login" role="tab" aria-selected="true">Connexion</button>
       <button class="seg-btn" data-tab="register" role="tab" aria-selected="false">Inscription</button>
     </div>
-    <button class="btn-google" id="btn-google">Continuer avec Google</button>
-    <div class="or"><span>ou par e-mail</span></div>
+    <button class="btn-google" id="btn-google" hidden>Continuer avec Google</button>
+    <div class="or" id="acct-or" hidden><span>ou par e-mail</span></div>
     <form id="acct-form" novalidate>
       <label class="field reg-only" for="in-rpseudo" hidden>
         <span class="field-label">PSEUDO</span>
@@ -146,8 +147,41 @@
         <span class="field-label">CONFIRMER LE MOT DE PASSE</span>
         <input id="in-pass2" type="password" autocomplete="new-password">
       </label>
+      <button type="button" class="link-btn login-only" id="acct-forgot">Mot de passe oublié ?</button>
       <div class="field-err" id="acct-err" role="alert"></div>
       <button class="cta" type="submit" id="acct-submit">SE CONNECTER</button>
+    </form>
+    </div>
+
+    <!-- Connecté : pseudo et statistiques -->
+    <div id="acct-me" hidden>
+      <div class="me-id">
+        <span class="field-label">PSEUDO</span>
+        <div class="me-pseudo" id="me-pseudo"></div>
+        <div class="me-email" id="me-email"></div>
+      </div>
+      <div class="me-stats">
+        <div class="me-stat"><b id="me-games">0</b><span>parties en ligne</span></div>
+        <div class="me-stat"><b id="me-wins">0</b><span>victoires</span></div>
+        <div class="me-stat"><b id="me-rate">—</b><span>taux de victoire</span></div>
+      </div>
+      <p class="field-help">Les statistiques comptent les parties en ligne terminées.</p>
+      <div class="form-actions"><button class="btn-sec" id="acct-logout">Se déconnecter</button></div>
+    </div>
+
+    <!-- Nouveau mot de passe (lien reçu par e-mail) -->
+    <form id="acct-reset" hidden novalidate>
+      <p class="panel-text">Choisissez votre nouveau mot de passe.</p>
+      <label class="field" for="in-newpass">
+        <span class="field-label">NOUVEAU MOT DE PASSE</span>
+        <input id="in-newpass" type="password" autocomplete="new-password">
+      </label>
+      <label class="field" for="in-newpass2">
+        <span class="field-label">CONFIRMER</span>
+        <input id="in-newpass2" type="password" autocomplete="new-password">
+      </label>
+      <div class="field-err" id="reset-err" role="alert"></div>
+      <button class="cta" type="submit">ENREGISTRER</button>
     </form>
   </div>
 </div>
@@ -306,6 +340,7 @@
 <script src="js/ai.js"></script>
 <script src="js/session.js"></script>
 <script src="js/online.js"></script>
+<script src="js/account.js"></script>
 <script src="js/render.js"></script>
 <script src="js/ui.js"></script>
 <script src="js/lobby.js"></script>

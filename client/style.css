@@ -987,3 +987,18 @@ input[type="range"]::-webkit-slider-thumb {
 
 /* Numéro de version (accueil) */
 .net-status .ver { opacity: 0.55; font-family: var(--font-mono); font-size: 11px; }
+
+/* Compte : mot de passe oublié, fiche du joueur */
+#acct-forgot { align-self: flex-end; font-size: 12px; margin-top: -4px; }
+.field-err.ok { color: #4ade80; }
+.me-id { display: flex; flex-direction: column; gap: 4px; margin: 6px 0 14px; }
+.me-pseudo { font-size: 22px; font-weight: 800; }
+.me-email { font-size: 12px; color: var(--text-secondary); }
+.me-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.me-stat { display: flex; flex-direction: column; gap: 2px; padding: 10px; border-radius: 10px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); }
+.me-stat b { font-family: var(--font-mono); font-size: 20px; color: #cdfb52; }
+.me-stat span { font-size: 11px; color: var(--text-secondary); }
+#in-pseudo[readonly] { opacity: 0.85; cursor: default; }
+#acct-reset { display: flex; flex-direction: column; gap: 12px; }
+#acct-reset[hidden], #acct-me[hidden], #acct-auth[hidden] { display: none; }
+.btn-google[hidden], .or[hidden], .login-only[hidden] { display: none !important; }

@@ -19,6 +19,13 @@ const CONFIG = {
     url: 'wss://solar-conquest.onrender.com',
   },
 
+  // Comptes joueurs (Supabase) : adresse du projet et clé PUBLIQUE uniquement
+  // (anon / publishable). Vides : comptes désactivés, on joue en invité.
+  supabase: {
+    url: '',
+    anonKey: '',
+  },
+
   system: {
     sunRadius: 52,
     firstOrbit: 150,          // distance de la 1re orbite au soleil

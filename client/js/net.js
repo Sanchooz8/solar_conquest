@@ -75,7 +75,7 @@ const Net = {
   // Demande au serveur : rejoindre ou créer un salon
   async onlineJoin(msg, pseudo) {
     if (Online.mismatch) return { ok: false, msg: Online.mismatchText() };
-    Online.send({ k: 'hello', pseudo });
+    await Online.sendHello(pseudo);
     const m = await Online.request(msg, ['joined', 'error']);
     if (m.k !== 'joined') return { ok: false, msg: m.msg };
     return { ok: true, room: this.room };
@@ -130,15 +130,17 @@ const Net = {
   },
 
   // --- Comptes ---------------------------------------------------------
-  // Comptes : prochaine étape (pas encore de base de données)
+  // Comptes (Supabase, cf. js/account.js)
   async login(email, password) {
-    return { ok: false, msg: 'Les comptes arrivent bientôt : pour l\'instant, un pseudo suffit pour jouer.' };
+    if (!Account.enabled()) return { ok: false, msg: 'Les comptes arrivent bientôt : pour l\'instant, un pseudo suffit pour jouer.' };
+    return Account.login(email, password);
   },
   async register(pseudo, email, password) {
-    return { ok: false, msg: 'Les comptes arrivent bientôt : pour l\'instant, un pseudo suffit pour jouer.' };
+    if (!Account.enabled()) return { ok: false, msg: 'Les comptes arrivent bientôt : pour l\'instant, un pseudo suffit pour jouer.' };
+    return Account.register(pseudo, email, password);
   },
   async googleSignIn() {
-    return { ok: false, msg: 'La connexion Google arrive bientôt : pour l\'instant, un pseudo suffit pour jouer.' };
+    return { ok: false, msg: 'La connexion Google arrive bientôt.' };
   },
   async logout() { this.account = null; return { ok: true }; },
 };

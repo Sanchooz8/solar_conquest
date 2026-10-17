@@ -220,12 +220,38 @@ function enterGameScreen() {
 }
 
 // --- Compte -------------------------------------------------------------
+// Trois vues dans la même fenêtre : connexion / inscription, fiche du joueur
+// connecté, nouveau mot de passe (lien « mot de passe oublié »)
+function acctView(v) {
+  el('acct-auth').hidden = v !== 'auth';
+  el('acct-me').hidden = v !== 'me';
+  el('acct-reset').hidden = v !== 'reset';
+  el('acct-title').textContent = v === 'me' ? 'Mon compte' : v === 'reset' ? 'Nouveau mot de passe' : 'Votre compte';
+}
+
 function openAccount() {
   el('acct').hidden = false;
-  setAcctTab(Lobby.tab);
+  if (Account.loggedIn()) { renderAccountMe(); acctView('me'); Account.loadProfile().then(renderAccountMe); }
+  else { acctView('auth'); setAcctTab(Lobby.tab); }
   el('acct-err').textContent = '';
 }
 function closeAccount() { el('acct').hidden = true; el('btn-account').focus(); }
+
+function openPasswordReset() {
+  el('acct').hidden = false;
+  acctView('reset');
+  el('reset-err').textContent = '';
+  el('in-newpass').focus();
+}
+
+function renderAccountMe() {
+  const p = Account.profile || {}, st = Account.stats || { games: 0, wins: 0 };
+  el('me-pseudo').textContent = p.pseudo || '';
+  el('me-email').textContent = Account.session && Account.session.user ? Account.session.user.email || '' : '';
+  el('me-games').textContent = st.games || 0;
+  el('me-wins').textContent = st.wins || 0;
+  el('me-rate').textContent = st.games ? Math.round(100 * st.wins / st.games) + ' %' : '—';
+}
 
 function setAcctTab(tab) {
   Lobby.tab = tab;
@@ -235,11 +261,14 @@ function setAcctTab(tab) {
     b.setAttribute('aria-selected', on);
   }
   for (const f of document.querySelectorAll('.reg-only')) f.hidden = tab !== 'register';
+  for (const f of document.querySelectorAll('.login-only')) f.hidden = tab !== 'login';
   el('acct-submit').textContent = tab === 'register' ? 'CRÉER MON COMPTE' : 'SE CONNECTER';
   el('in-pass').autocomplete = tab === 'register' ? 'new-password' : 'current-password';
   if (tab === 'register' && !el('in-rpseudo').value) el('in-rpseudo').value = loadPseudo();
-  el('acct-err').textContent = '';
+  setAcctMsg('');
 }
+
+function setAcctMsg(msg, ok) { el('acct-err').textContent = msg; el('acct-err').classList.toggle('ok', !!ok); }
 
 async function submitAccount(e) {
   e.preventDefault();
@@ -248,22 +277,62 @@ async function submitAccount(e) {
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) err = 'Saisissez une adresse e-mail valide.';
   else if (pass.length < 8) err = 'Le mot de passe doit contenir au moins 8 caractères.';
   else if (Lobby.tab === 'register') {
-    const rp = el('in-rpseudo').value.trim();
+    const rp = el('in-rpseudo').value.trim().replace(/\s+/g, ' ');
     if (rp.length < 2) err = 'Choisissez un pseudo de 2 à 16 caractères.';
+    else if (!/^[\p{L}\p{N} _.-]+$/u.test(rp)) err = 'Pseudo : lettres, chiffres, espaces, « _ », « - » et « . » uniquement.';
     else if (pass !== el('in-pass2').value) err = 'Les deux mots de passe ne correspondent pas.';
   }
-  if (err) { el('acct-err').textContent = err; return; }
+  if (err) { setAcctMsg(err); return; }
+  const btn = el('acct-submit'); btn.disabled = true; setAcctMsg('…');
   const r = Lobby.tab === 'register'
-    ? await Net.register(el('in-rpseudo').value.trim(), email, pass)
+    ? await Net.register(el('in-rpseudo').value.trim().replace(/\s+/g, ' '), email, pass)
     : await Net.login(email, pass);
-  if (!r.ok) { el('acct-err').textContent = r.msg; return; }
-  Net.account = r.account; renderAccountChip(); closeAccount();
+  btn.disabled = false;
+  if (!r.ok) { setAcctMsg(r.msg); return; }
+  if (r.confirm) { setAcctMsg(r.msg, true); return; }
+  el('in-pass').value = ''; el('in-pass2').value = '';
+  setAcctMsg('');
+  closeAccount();
+  showMenuToast(`Connecté : bienvenue ${Account.profile ? Account.profile.pseudo : ''} !`, true);
+}
+
+async function forgotPassword() {
+  const email = el('in-email').value.trim();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setAcctMsg("Saisissez d'abord votre adresse e-mail ci-dessus."); el('in-email').focus(); return; }
+  const r = await Account.recover(email);
+  setAcctMsg(r.msg, r.ok);
+}
+
+async function submitReset(e) {
+  e.preventDefault();
+  const a = el('in-newpass').value, b = el('in-newpass2').value;
+  const err = a.length < 8 ? 'Le mot de passe doit contenir au moins 8 caractères.' : a !== b ? 'Les deux mots de passe ne correspondent pas.' : '';
+  if (err) { el('reset-err').textContent = err; return; }
+  const r = await Account.setPassword(a);
+  if (!r.ok) { el('reset-err').textContent = r.msg; return; }
+  el('in-newpass').value = ''; el('in-newpass2').value = '';
+  closeAccount();
+  showMenuToast('Mot de passe enregistré : vous êtes connecté.', true);
+}
+
+// Connexion ou déconnexion : pseudo, bouton du compte, serveur prévenus
+function onAccountChange() {
+  const inp = el('in-pseudo');
+  if (Account.loggedIn()) {
+    inp.value = Account.profile.pseudo; inp.readOnly = true; inp.title = 'Pseudo de votre compte';
+    savePseudo(Account.profile.pseudo);
+    el('pseudo-err').textContent = '';
+  } else {
+    inp.readOnly = false; inp.title = '';
+  }
+  renderAccountChip();
+  if (typeof Online !== 'undefined' && Online.isUp && Online.isUp()) Online.sendHello();
 }
 
 function renderAccountChip() {
-  const a = Net.account;
+  const a = Account.loggedIn() ? Account.profile : null;
   el('btn-account').textContent = a ? `${a.pseudo} · Mon compte` : "Se connecter · S'inscrire";
-  document.querySelector('.acct-hint').textContent = a ? 'statistiques enregistrées' : 'pour conserver vos statistiques';
+  document.querySelector('.acct-hint').textContent = a ? 'statistiques enregistrées' : 'pour réserver votre pseudo et garder vos statistiques';
 }
 
 // Petit message sous les écrans d'accueil (réutilise le toast du jeu)
@@ -307,6 +376,9 @@ function initLobby() {
   window.addEventListener('keydown', e => { if (e.key === 'Escape' && !el('acct').hidden) closeAccount(); });
   for (const b of document.querySelectorAll('[data-tab]')) b.addEventListener('click', () => setAcctTab(b.dataset.tab));
   el('acct-form').addEventListener('submit', submitAccount);
+  el('acct-forgot').addEventListener('click', forgotPassword);
+  el('acct-reset').addEventListener('submit', submitReset);
+  el('acct-logout').addEventListener('click', async () => { await Account.logout(); closeAccount(); showMenuToast('Vous êtes déconnecté.'); });
   el('btn-google').addEventListener('click', async () => {
     const r = await Net.googleSignIn();
     if (!r.ok) el('acct-err').textContent = r.msg;
@@ -332,6 +404,7 @@ function initLobby() {
   }, 1000);
   renderNetStatus();
   renderAccountChip();
+  Account.init(); // session mémorisée, ou retour depuis un lien reçu par e-mail
   refreshGames();
   showScreen('scr-home');
 }

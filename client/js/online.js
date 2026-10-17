@@ -40,7 +40,7 @@ const Online = {
     this.ws = ws;
     ws.onopen = () => {
       this.status = 'online'; this.attempts = 0; this.firstFail = 0;
-      this.send({ k: 'hello', pseudo: loadPseudo() || 'Pilote', token: this.loadToken() });
+      this.sendHello(null, this.loadToken());
       clearInterval(this.pingTimer);
       this.pingTimer = setInterval(() => this.send({ k: 'ping' }), 20000);
     };
@@ -68,6 +68,13 @@ const Online = {
 
   isUp() { return this.ws && this.ws.readyState === 1; },
 
+  // Présentation au serveur : pseudo d'invité, ou jeton du compte connecté
+  async sendHello(pseudo, rejoinToken) {
+    const auth = Account.enabled() && Account.session ? await Account.token() : null;
+    this.awaitingRejoin = !!rejoinToken;
+    this.send({ k: 'hello', pseudo: pseudo || loadPseudo() || 'Pilote', auth: auth || undefined, token: rejoinToken || undefined });
+  },
+
   send(m) { if (this.isUp()) this.ws.send(JSON.stringify(m)); },
 
   // Requête avec réponse attendue (un des types `kinds`)
@@ -94,12 +101,14 @@ const Online = {
 
     switch (m.k) {
       case 'welcome': {
+        if (m.authError && Account.session) { Account.clearSession(); onAccountChange(); showMenuToast(m.authError); }
         // Jeu et serveur doivent être à la même version
         const before = this.serverVersion;
         this.serverVersion = m.version || null;
         this.mismatch = APP_VERSION !== 'dev' && !!m.version && m.version !== APP_VERSION;
         // Reconnexion pendant une partie qui n'existe plus
-        if (!m.rejoined && this.inGame && Session.role === 'client' && G.phase !== 'over') {
+        const askedRejoin = this.awaitingRejoin; this.awaitingRejoin = false;
+        if (askedRejoin && !m.rejoined && this.inGame && Session.role === 'client' && G.phase !== 'over') {
           this.inGame = false; this.clearToken();
           hostLost(before && before !== m.version
             ? 'Le serveur vient d\'être mis à jour : la partie a été interrompue. Rechargez la page pour rejouer.'

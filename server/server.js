@@ -22,6 +22,7 @@ const http = require('http');
 const crypto = require('crypto');
 const { WebSocketServer } = require('ws');
 const { startGame } = require('./sim');
+const supa = require('./supabase');
 
 const PORT = process.env.PORT || 8080;
 const VERSION = require('../package.json').version;
@@ -109,7 +110,8 @@ function joinRoom(client, room) {
 function seatClient(room, client) {
   let pseudo = client.pseudo;
   while (room.seats.some(s => s.pseudo === pseudo)) pseudo = pseudo.slice(0, 14) + crypto.randomInt(1, 10);
-  const seat = { room, pseudo, ws: client.ws, client, token: token(), pid: null, goneAt: null };
+  const seat = { room, pseudo, ws: client.ws, client, token: token(), pid: null, goneAt: null,
+    account: client.account ? client.account.id : null };
   room.seats.push(seat);
   client.seat = seat;
   seatsByToken.set(seat.token, seat);
@@ -182,6 +184,7 @@ function stepRoom(room, nextDt) {
       sim.botifyPlayer(s.pid, 'connexion perdue');
     }
   }
+  if (sim.G.phase === 'over' && !room.recorded) { room.recorded = true; recordRoom(room); }
   room.tickN++;
   if (room.tickN % SNAP_EVERY === 0) {
     const snap = JSON.stringify(sim.buildSnapshot(false));
@@ -191,6 +194,22 @@ function stepRoom(room, nextDt) {
   const anyone = room.seats.some(s => s.ws);
   if (anyone) room.emptySince = null; else room.emptySince = room.emptySince || now;
   if (room.emptySince && now - room.emptySince > (sim.G.phase === 'over' ? 5000 : ROOM_IDLE_END)) closeRoom(room);
+}
+
+// Fin de partie : historique et statistiques des joueurs inscrits (Supabase)
+function recordRoom(room) {
+  if (!supa.enabled() || !room.seats.some(s => s.account)) return;
+  const G = room.sim.G;
+  const seatOf = pid => room.seats.find(s => s.pid === pid);
+  const players = G.players.map(p => {
+    const seat = seatOf(p.id);
+    return { name: p.name, account: seat ? seat.account : null, human: !!seat,
+      won: !!(G.winner && G.winner.id === p.id), eliminated: !p.alive };
+  });
+  const w = G.winner ? seatOf(G.winner.id) : null;
+  supa.recordMatch({ duration: Math.round(G.time), planets: room.planets,
+    winner: w && w.account ? w.account : '', winnerName: G.winner ? G.winner.name : null, players })
+    .then(ok => { if (ok) console.log(`[salon ${room.code}] partie enregistrée`); });
 }
 
 // Retour d'un joueur après une coupure (même onglet ou page rechargée)
@@ -209,6 +228,22 @@ function rejoin(client, tok) {
 }
 
 // --- Connexions --------------------------------------------------------------
+// Présentation d'un joueur : compte (jeton Supabase) ou invité (pseudo libre)
+async function hello(client, m) {
+  let account = null, authError = null;
+  if (m.auth && supa.enabled()) {
+    account = await supa.verifyUser(String(m.auth));
+    if (!account) authError = 'Votre session a expiré : reconnectez-vous.';
+  }
+  client.account = account;
+  client.pseudo = account ? account.pseudo : (clean(m.pseudo, 16) || 'Pilote');
+  // Un invité ne peut pas prendre le pseudo d'un joueur inscrit
+  client.reserved = !account && !!(await supa.pseudoOwner(client.pseudo));
+  const rejoined = m.token ? rejoin(client, String(m.token)) : false;
+  send(client.ws, { k: 'welcome', version: VERSION, rejoined,
+    account: account ? { pseudo: account.pseudo } : null, authError, reserved: client.reserved });
+}
+
 function onMessage(client, raw) {
   const now = Date.now();
   if (now - client.windowStart > 1000) { client.windowStart = now; client.count = 0; }
@@ -219,14 +254,19 @@ function onMessage(client, raw) {
 
   switch (m.k) {
     case 'hello':
-      client.pseudo = clean(m.pseudo, 16) || 'Pilote';
-      send(client.ws, { k: 'welcome', version: VERSION, rejoined: m.token ? rejoin(client, String(m.token)) : false });
+      client.authPending = hello(client, m).catch(e => console.error('hello', e));
       return;
     case 'ping': return;
     case 'list': send(client.ws, { k: 'list', games: publicList() }); return;
-    case 'create': createRoom(client, m.opts || {}); return;
-    case 'join': joinRoom(client, rooms.get(String(m.code || '').toUpperCase())); return;
-    case 'joinId': joinRoom(client, [...rooms.values()].find(r => r.id === m.id)); return;
+    // Création et entrée dans un salon : après vérification du compte / du pseudo
+    case 'create': case 'join': case 'joinId':
+      client.authPending.then(() => {
+        if (client.reserved) return send(client.ws, { k: 'error', msg: `Le pseudo « ${client.pseudo} » appartient à un joueur inscrit : connectez-vous, ou choisissez un autre pseudo.` });
+        if (m.k === 'create') createRoom(client, m.opts || {});
+        else if (m.k === 'join') joinRoom(client, rooms.get(String(m.code || '').toUpperCase()));
+        else joinRoom(client, [...rooms.values()].find(r => r.id === m.id));
+      });
+      return;
     case 'leave': leaveRoom(client); return;
     case 'start': startRoom(client); return;
     case 'bye': leaveRoom(client, 'parti'); return;
@@ -260,7 +300,7 @@ const server = http.createServer((req, res) => {
   const games = [...rooms.values()];
   res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*' });
   res.end(JSON.stringify({
-    ok: true, name: 'Solar Conquest', version: VERSION,
+    ok: true, name: 'Solar Conquest', version: VERSION, accounts: supa.enabled(),
     rooms: games.length, playing: games.filter(r => r.status === 'playing').length,
     players: games.reduce((n, r) => n + r.seats.filter(s => s.ws).length, 0),
   }));
@@ -268,7 +308,8 @@ const server = http.createServer((req, res) => {
 
 const wss = new WebSocketServer({ server, maxPayload: 64 * 1024 });
 wss.on('connection', (ws) => {
-  const client = { ws, pseudo: 'Pilote', seat: null, windowStart: Date.now(), count: 0, alive: true };
+  const client = { ws, pseudo: 'Pilote', seat: null, windowStart: Date.now(), count: 0, alive: true,
+    account: null, reserved: false, authPending: Promise.resolve() };
   ws.on('message', (data) => onMessage(client, data.toString()));
   ws.on('close', () => onClose(client));
   ws.on('error', () => {});
