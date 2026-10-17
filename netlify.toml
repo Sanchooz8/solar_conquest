@@ -6,3 +6,9 @@
 
 [build.environment]
   NODE_VERSION = "20"
+
+# Toujours vérifier la dernière version du jeu (pas de copie périmée en cache)
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
