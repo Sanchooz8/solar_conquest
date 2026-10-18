@@ -26,7 +26,8 @@ const Account = {
     if (token) headers.Authorization = 'Bearer ' + token;
     else if (c.anonKey.startsWith('eyJ')) headers.Authorization = 'Bearer ' + c.anonKey; // ancienne clé « anon »
     try {
-      const res = await fetch(c.url.replace(/\/+$/, '') + path, {
+      const base = c.url.replace(/\/+$/, '').replace(/\/(rest|auth)\/v1$/, '');
+      const res = await fetch(base + path, {
         method, headers, body: body === undefined ? undefined : JSON.stringify(body),
       });
       const text = await res.text();

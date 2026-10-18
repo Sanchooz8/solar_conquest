@@ -8,7 +8,8 @@
 // ============================================================
 'use strict';
 
-const URL = (process.env.SUPABASE_URL || '').replace(/\/+$/, '');
+// (adresse tolérée avec ou sans « /rest/v1/ » à la fin)
+const URL = (process.env.SUPABASE_URL || '').trim().replace(/\/+$/, '').replace(/\/(rest|auth)\/v1$/, '');
 const KEY = process.env.SUPABASE_SERVICE_KEY || '';
 
 function enabled() { return !!(URL && KEY); }

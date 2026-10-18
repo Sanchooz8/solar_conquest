@@ -22,8 +22,8 @@ const CONFIG = {
   // Comptes joueurs (Supabase) : adresse du projet et clé PUBLIQUE uniquement
   // (anon / publishable). Vides : comptes désactivés, on joue en invité.
   supabase: {
-    url: '',
-    anonKey: '',
+    url: 'https://ulhskumhcxvguttskpgo.supabase.co',
+    anonKey: 'sb_publishable_eXQgJyYfQm7Rk2H2FQLvIw_LRL7P3z8',
   },
 
   system: {
