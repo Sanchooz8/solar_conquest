@@ -419,4 +419,7 @@ const I18N_STR = {
 
   // --- divers
   'sb.youName': ["You", "Vous"],
+
+  // --- publicité
+  'ads.label': ["Advertisement", "Publicité"],
 };

@@ -26,6 +26,15 @@ const CONFIG = {
     anonKey: 'sb_publishable_eXQgJyYfQm7Rk2H2FQLvIw_LRL7P3z8',
   },
 
+  // Publicité (menu uniquement : accueil et salon d'attente). Vide : aucun encart.
+  // client : identifiant d'éditeur AdSense « ca-pub-… » ; slots : identifiants
+  // des blocs d'annonces créés dans AdSense (un par emplacement).
+  ads: {
+    provider: 'adsense',
+    client: '',
+    slots: { home: '', lobby: '' },
+  },
+
   system: {
     sunRadius: 52,
     firstOrbit: 150,          // distance de la 1re orbite au soleil

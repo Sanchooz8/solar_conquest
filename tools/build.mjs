@@ -29,4 +29,9 @@ out = out.replace(/src="(img\/[^"]+\.(webp|png|jpe?g|svg))"/g, (m, f, ext) => {
 
 mkdirSync(join(root, 'dist'), { recursive: true });
 writeFileSync(join(root, 'dist', 'index.html'), out);
+
+// ads.txt (publicité) : généré à partir de CONFIG.ads.client s'il est rempli
+const cfgSrc = readFileSync(join(client, 'js', 'config.js'), 'utf8');
+const pub = (cfgSrc.match(/client:\s*'ca-(pub-\d+)'/) || [])[1];
+if (pub) writeFileSync(join(root, 'dist', 'ads.txt'), `google.com, ${pub}, DIRECT, f08c47fec0942fa0\n`);
 console.log(`dist/index.html : version ${version}, ${scripts.length} scripts, ${images} images, ${(out.length / 1024).toFixed(0)} Ko`);

@@ -44,6 +44,17 @@ Les comptes (e-mail + mot de passe) sont gérés par Supabase ; ils restent facu
 
 Le serveur vérifie le jeton de connexion de chaque joueur, réserve les pseudos des comptes (un invité ne peut pas les prendre) et enregistre chaque partie en ligne terminée (table `matches`, statistiques dans `player_stats`).
 
+## Publicité
+
+Deux encarts, uniquement dans le menu : une bannière sous les panneaux de l'accueil et un rectangle à côté du salon d'attente. Ils restent invisibles tant que `CONFIG.ads` (dans `client/js/config.js`) n'est pas rempli :
+
+1. Créer un compte Google AdSense et y ajouter le site Netlify (validation par Google).
+2. Dans `CONFIG.ads` : `client` = identifiant d'éditeur (`ca-pub-…`) ; `slots.home` et `slots.lobby` = identifiants de deux blocs d'annonces « display » créés dans AdSense.
+3. Le build génère alors `ads.txt` tout seul.
+4. Dans AdSense, *Confidentialité et messages* → activer le message RGPD (consentement certifié de Google, obligatoire pour la publicité personnalisée en Europe).
+
+Pour voir la mise en page avec des encarts factices : ajouter `?ads=demo` à l'adresse.
+
 ## Langues
 
 Le jeu est en anglais par défaut, avec un sélecteur English / Français en haut à gauche de l'accueil (`?lang=fr` dans l'adresse force le français). Tous les textes sont dans `client/js/i18n.js` : dans le code, `T('clé', { param })` ; dans le HTML, l'attribut `data-i18n="clé"`. Le serveur envoie des clés (`{ k, p }`) que chaque joueur traduit dans sa langue.

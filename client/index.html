@@ -58,6 +58,10 @@
         <button class="btn-sec" id="btn-solo" data-i18n="home.solo">Quick solo game against 3 bots</button>
       </div>
     </div>
+    <aside class="ad-slot ad-home" id="ad-home" data-size="728 × 90" hidden>
+      <span class="ad-label" data-i18n="ads.label">Advertisement</span>
+      <div class="ad-inner"></div>
+    </aside>
     <div class="net-status" id="net-status"></div>
   </section>
 
@@ -101,6 +105,7 @@
   <!-- Écran 3 : salon d'attente -->
   <section class="lobby-screen" id="scr-lobby" hidden>
     <div class="screen-title" id="lobby-name">—</div>
+    <div class="lobby-wrap">
     <div class="panel glass form-panel">
       <div class="lobby-code">
         <div>
@@ -117,6 +122,11 @@
         <button class="btn-sec" id="btn-lobby-leave" data-i18n="lb.leave">Leave the room</button>
         <button class="cta" id="btn-start" data-i18n="lb.start">START THE GAME</button>
       </div>
+    </div>
+    <aside class="ad-slot ad-lobby" id="ad-lobby" data-size="300 × 250" hidden>
+      <span class="ad-label" data-i18n="ads.label">Advertisement</span>
+      <div class="ad-inner"></div>
+    </aside>
     </div>
   </section>
 </div>
@@ -648,6 +658,7 @@
 <script src="js/session.js"></script>
 <script src="js/online.js"></script>
 <script src="js/account.js"></script>
+<script src="js/ads.js"></script>
 <script src="js/render.js"></script>
 <script src="js/overview.js"></script>
 <script src="js/ui.js"></script>

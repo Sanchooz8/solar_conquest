@@ -8,6 +8,7 @@ const Lobby = { vis: 'public', tab: 'login' };
 
 function showScreen(id) {
   for (const s of ['scr-home', 'scr-create', 'scr-lobby']) el(s).hidden = s !== id;
+  if (id === 'scr-lobby') Ads.fill('lobby');
 }
 
 // --- Pseudo ---------------------------------------------------------
@@ -383,6 +384,7 @@ function initLobby() {
   });
 
   setVisibility('public');
+  Ads.init();
   // Choix de la langue (en haut à gauche de l'accueil)
   document.querySelectorAll('[data-setlang]').forEach(b => b.addEventListener('click', () => setLang(b.dataset.setlang)));
   const markLang = () => document.querySelectorAll('[data-setlang]').forEach(b => {
