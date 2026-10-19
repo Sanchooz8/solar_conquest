@@ -1002,3 +1002,21 @@ input[type="range"]::-webkit-slider-thumb {
 #acct-reset { display: flex; flex-direction: column; gap: 12px; }
 #acct-reset[hidden], #acct-me[hidden], #acct-auth[hidden] { display: none; }
 .btn-google[hidden], .or[hidden], .login-only[hidden] { display: none !important; }
+
+/* Vue d'ensemble : mes planètes + mini-carte */
+#myplanets { position: fixed; left: 10px; top: 140px; min-width: 228px; padding: 8px 10px; z-index: 20; display: flex; flex-direction: column; gap: 3px; font-size: 12px; }
+#myplanets[hidden] { display: none; }
+#myplanets .mp-head { font-size: 9px; letter-spacing: 0.14em; font-weight: 700; color: var(--text-secondary); display: flex; justify-content: space-between; margin-bottom: 2px; }
+#myplanets .mp-head span { letter-spacing: 0; font-weight: 500; opacity: 0.7; }
+#myplanets .mp-row { display: flex; align-items: center; gap: 6px; padding: 3px 5px; border-radius: 6px; cursor: pointer; flex-wrap: wrap; }
+#myplanets .mp-row:hover { background: rgba(255,255,255,0.06); }
+#myplanets .mp-row.on { background: rgba(205,251,82,0.10); }
+#myplanets .mp-name { font-weight: 600; }
+#myplanets .mp-info { color: var(--text-secondary); font-family: var(--font-mono); font-size: 11px; margin-left: auto; }
+#myplanets .mp-tag { font-size: 8.5px; font-weight: 800; letter-spacing: 0.08em; padding: 1px 5px; border-radius: 4px; }
+#myplanets .mp-tag.atk { background: rgba(255,59,48,0.22); color: #ff6b5e; }
+#myplanets .mp-tag.inc { background: rgba(255,179,71,0.2); color: #ffb347; }
+#myplanets .mp-empty { color: var(--text-secondary); }
+#minimap { position: fixed; right: 10px; bottom: 200px; width: 180px; height: 180px; z-index: 20; border-radius: 12px;
+  background: rgba(8,10,20,0.72); border: 1px solid rgba(255,255,255,0.10); backdrop-filter: blur(6px); cursor: pointer; }
+#minimap[hidden] { display: none; }

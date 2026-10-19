@@ -61,6 +61,95 @@ function screenToWorld(sx, sy) {
   };
 }
 
+// --- Vue stratégique ----------------------------------------------------
+// De loin, une planète reste assez grande pour être lisible et cliquable
+// (au moins STRAT_MIN_PX de rayon à l'écran) : elle est dessinée agrandie
+// autour de son centre, sans chevaucher ses voisines ni le soleil. Les
+// positions réelles (orbites, objets en vol) ne changent pas.
+const STRAT_MIN_PX = 46;
+function planetScale(p) { return p._k || 1; }
+function strategic(p) { return (p._k || 1) > 1.05; }
+
+function computePlanetScales() {
+  const z = UI.cam.zoom;
+  for (const p of G.planets) {
+    const want = STRAT_MIN_PX / (p.radius * z);
+    if (want <= 1) { p._k = 1; continue; }
+    let cap = (Math.hypot(p.x, p.y) - CONFIG.system.sunRadius * 1.4) / p.radius;
+    for (const q of G.planets) {
+      if (q !== p) cap = Math.min(cap, 0.48 * Math.hypot(p.x - q.x, p.y - q.y) / p.radius);
+    }
+    p._k = Math.max(1, Math.min(want, cap));
+  }
+}
+
+// Planète et territoire sous un point du monde. En vue stratégique, le
+// territoire se choisit à l'angle (toute la bordure de la planète est
+// cliquable), l'intérieur ne désigne aucun territoire.
+function pickAt(w) {
+  for (let i = G.planets.length - 1; i >= 0; i--) {
+    const p = G.planets[i];
+    const k = planetScale(p);
+    const d = Math.hypot(w.x - p.x, w.y - p.y);
+    const strat = k > 1.05;
+    if (d > p.radius * k + (strat ? 14 / UI.cam.zoom : 0)) continue;
+    let cell = null;
+    if (strat) {
+      if (d >= p.radius * k * 0.55) {
+        const ang = normAngle(Math.atan2(w.y - p.y, w.x - p.x) - p.rotation);
+        cell = p.cells[0][Math.min(p.sectors - 1, Math.floor(ang / p.sectorAngle))];
+        if (cell.destroyed) cell = null;
+      }
+    } else {
+      cell = cellAt(p, w.x, w.y);
+    }
+    return { planet: p, cell };
+  }
+  return null;
+}
+
+// Anneau de couleur par joueur autour d'une planète agrandie : la carte se
+// lit d'un coup d'œil (qui tient quoi, où sont les combats)
+function drawStrategicRing(p, t) {
+  const n = p.sectors, sa = p.sectorAngle;
+  const r = p.radius + 6 / UI.cam.zoom;
+  ctx.lineWidth = 6 / UI.cam.zoom;
+  ctx.lineCap = 'butt';
+  let s = 0;
+  while (s < n) {
+    const c = p.cells[0][s];
+    const key = c.destroyed ? 'x' : (c.owner === null ? 'n' : c.owner);
+    let e = s + 1;
+    while (e < n) {
+      const c2 = p.cells[0][e];
+      const k2 = c2.destroyed ? 'x' : (c2.owner === null ? 'n' : c2.owner);
+      if (k2 !== key) break;
+      e++;
+    }
+    if (key !== 'x') {
+      ctx.strokeStyle = key === 'n' ? 'rgba(160,165,185,0.22)' : G.players[key].color;
+      ctx.globalAlpha = key === 'n' ? 1 : 0.95;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, r, p.rotation + s * sa, p.rotation + e * sa);
+      ctx.stroke();
+    }
+    s = e;
+  }
+  // Combats en cours : éclats blancs clignotants
+  const blink = 0.45 + 0.45 * Math.sin(t * 0.012);
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = 8 / UI.cam.zoom;
+  for (let i = 0; i < n; i++) {
+    const c = p.cells[0][i];
+    if (!c.contest || c.destroyed) continue;
+    ctx.globalAlpha = blink;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, r, p.rotation + i * sa, p.rotation + (i + 1) * sa);
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+}
+
 // --- Boucle de rendu -------------------------------------------
 function render(t) {
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
@@ -93,7 +182,19 @@ function render(t) {
 
   drawSun(t);
   drawOrbits();
-  for (const p of G.planets) drawPlanet(p, t);
+  computePlanetScales();
+  for (const p of G.planets) {
+    const k = planetScale(p);
+    if (k <= 1) { drawPlanet(p, t); continue; }
+    // Vue stratégique : planète agrandie autour de son centre. Le zoom est
+    // multiplié le temps du dessin pour que traits et icônes gardent leur
+    // taille à l'écran.
+    const z = UI.cam.zoom;
+    ctx.save();
+    ctx.translate(p.x, p.y); ctx.scale(k, k); ctx.translate(-p.x, -p.y);
+    UI.cam.zoom = z * k;
+    try { drawPlanet(p, t); drawStrategicRing(p, t); } finally { UI.cam.zoom = z; ctx.restore(); }
+  }
   drawShadows(); // ombres des vaisseaux sur les planètes survolées
   if (CONFIG.aa.showCone) drawAACones();
   drawMissiles();
@@ -111,13 +212,17 @@ function render(t) {
     for (const p of G.planets) {
       if (UI.cam.zoom <= 0.45 && UI.lock !== p) continue;
       ctx.fillStyle = UI.lock === p ? '#cdfb52' : 'rgba(224,224,224,0.55)';
-      ctx.fillText(p.name.toUpperCase(), p.x, p.y + p.radius + 16 / UI.cam.zoom);
+      ctx.fillText(p.name.toUpperCase(), p.x, p.y + p.radius * planetScale(p) + (strategic(p) ? 24 : 16) / UI.cam.zoom);
     }
   }
 
   // Viseur aimanté (colonisation, flottes) : rail autour de la planète
   updateAimSnap();
   if (UI.snap) drawAimRail(t, UI.aimingColony ? '#4ade80' : '#ffb347');
+
+  // Alertes au bord de l'écran et mini-carte (cf. js/overview.js)
+  drawEdgeAlerts(t);
+  drawMinimap(t);
 
   // Viseur (en coordonnées écran)
   if (UI.aiming) drawVolleyReticles(t);
@@ -699,7 +804,21 @@ function makeBuildingIcons(color = '#d6dcea') {
 function drawHighlights(pl, t) {
   if (G.phase !== 'playing' || G.phase === 'over') return;
 
-  // Mode pose de bâtiment : fantôme suivant le curseur
+  // Mode pose de bâtiment : fantôme sur l'emplacement proposé (ou, Maj
+  // enfoncée, sur le territoire survolé)
+  if (UI.placing && UI.lock === pl && !UI.shift) {
+    const sug = suggestBuildCell(G.me, pl, UI.placing);
+    if (sug) {
+      cellPathOf(sug);
+      ctx.strokeStyle = '#cdfb52';
+      ctx.globalAlpha = 0.6 + 0.35 * Math.sin(t * 0.008);
+      ctx.lineWidth = 2.5 / UI.cam.zoom;
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+      drawBuilding(sug, { type: UI.placing, valid: true });
+    }
+    return;
+  }
   if (UI.placing && UI.hover && UI.hover.planet === pl && UI.lock === pl) {
     const h = UI.hover;
     const valid = h.owner === G.me && !h.building && !h.contest && !h.destroyed;
@@ -880,7 +999,7 @@ function drawCargos() {
 // En visée de colonisation ou de flotte, le viseur s'accroche à un rail
 // circulaire autour de la planète proche et suit la souris le long de ce
 // rail ; il se décroche si la souris s'éloigne trop.
-function aimRailRadius(p) { return p.radius + Math.max(7, 16 / UI.cam.zoom); }
+function aimRailRadius(p) { return p.radius * planetScale(p) + Math.max(7, (strategic(p) ? 20 : 16) / UI.cam.zoom); }
 
 function updateAimSnap() {
   const fleetAim = UI.aimingFleet;
@@ -894,7 +1013,7 @@ function updateAimSnap() {
   for (const p of G.planets) {
     const d = Math.hypot(w.x - p.x, w.y - p.y);
     const keep = UI.snap && UI.snap.planet === p ? A.hold : 1; // décrochage bien plus loin que l'accroche
-    const gap = d - p.radius;
+    const gap = d - p.radius * planetScale(p);
     if (gap < zone(p) * keep && gap < bestGap) { best = p; bestGap = gap; }
   }
   if (!best) { UI.snap = null; return; }
@@ -1013,7 +1132,7 @@ function drawAACones() {
   const half = CONFIG.aa.coneHalfAngle * Math.PI / 180;
   for (const p of G.planets) {
     for (const cell of planetCells(p)) {
-      if (cell.destroyed || cell.owner === null || cell.building !== 'aa') continue;
+      if (cell.destroyed || cell.owner === null || cell.building !== 'aa' || strategic(p)) continue;
       const f = aaFrame(cell);
       const col = G.players[cell.owner].color;
       const ready = (cell.aaT || 0) >= CONFIG.aa.fireInterval;
@@ -1130,6 +1249,7 @@ function drawPlanetShade(pl) {
 function castShadow(x, y, size, heading, alt) {
   const S = CONFIG.ui.shadow;
   for (const p of G.planets) {
+    if (strategic(p)) continue; // planète agrandie : pas d'ombre (positions non réalistes)
     const d = Math.hypot(x - p.x, y - p.y);
     if (d - p.radius > S.reach) continue;
     const away = sunDir(p.x, p.y);

@@ -287,6 +287,53 @@ function attackCell(player, dstCell) {
   return { ok: true };
 }
 
+// --- Emplacement conseillé pour un bâtiment -------------------------------
+// Construire sans viser : le jeu propose le territoire libre le plus adapté.
+//  - industries, villes, ports, centres de colonisation : à l'abri, loin du front ;
+//  - silos : à l'abri, et groupés avec les autres silos (salves cohérentes) ;
+//  - bases militaires : près du front, sans être en première ligne ;
+//  - boucliers : là où ils couvrent le plus de bâtiments encore non protégés ;
+//  - défenses anti-aériennes : réparties sur la planète, loin des autres DAA.
+function suggestBuildCell(pid, planet, type) {
+  const C = planet.cells[0], n = planet.sectors;
+  const free = C.filter(c => c.owner === pid && !c.building && !c.contest && !c.destroyed);
+  if (!free.length) return null;
+  const others = C.filter(c => !c.destroyed && c.owner !== pid);
+  const enemies = others.filter(c => c.owner !== null && isHostile(pid, c.owner));
+  const front = enemies.length ? enemies : others; // sans ennemi : les neutres
+  const dist = (a, b) => { const d = Math.abs(a.sector - b.sector) % n; return Math.min(d, n - d); };
+  const nearest = (c, list) => list.reduce((m, o) => Math.min(m, dist(c, o)), n);
+  const mine = C.filter(c => c.owner === pid && !c.destroyed);
+  const same = mine.filter(c => c.building === type);
+  let best = null, bestScore = -Infinity;
+  for (const c of free) {
+    const safe = front.length ? nearest(c, front) : n / 2; // éloignement du front (en territoires)
+    let score;
+    switch (type) {
+      case 'military':
+        score = -Math.abs(safe - 3) * 10 + (enemies.length ? 0 : -safe);
+        break;
+      case 'silo':
+        score = Math.min(safe, 12) * 4 - (same.length ? nearest(c, same) : 0) * 2;
+        break;
+      case 'shield': {
+        const R = CONFIG.shield.arcSectors;
+        const covered = o => same.some(sh => dist(sh, o) <= R);
+        score = mine.filter(o => o.building && o.building !== 'shield' && dist(o, c) <= R && !covered(o)).length * 20 + Math.min(safe, 8);
+        break;
+      }
+      case 'aa':
+        score = (same.length ? nearest(c, same) : n / 2) * 3 + Math.min(safe, 6);
+        break;
+      default: // city, industry, tradeport, colony, spaceport
+        score = safe * 4 + (type === 'city' ? c.pop / 20 : 0);
+    }
+    if (safe <= 1 && type !== 'military') score -= 50; // jamais en première ligne
+    if (score > bestScore) { bestScore = score; best = c; }
+  }
+  return best;
+}
+
 // Construire un bâtiment sur un territoire possédé
 function buildOn(player, cell, type) {
   if (type === 'spaceport' && !CONFIG.features.fleets) return { ok: false, msg: 'Les vaisseaux sont désactivés' };

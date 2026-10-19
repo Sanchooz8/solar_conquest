@@ -242,8 +242,8 @@ function buildSnapshot(full) {
     pr: G.players.map(p => [Math.round(p.money), p.alive ? 1 : 0, p.colonyPlaced ? 1 : 0,
       r1(p.vulnerableUntil || 0), r1(p.traitorUntil || 0), p.isBot ? 1 : 0, p.profile ? [p.profile.style, r2(p.profile.skill)] : 0]),
     c: cells, cr: craters, bc,
-    mi: G.missiles.map(fly),
-    mo: G.modules.map(m => [...fly(m), m.hp ?? CONFIG.aa.moduleHits]),
+    mi: G.missiles.map(m => [...fly(m), r1(m.target.x), r1(m.target.y)]),
+    mo: G.modules.map(m => [...fly(m), m.hp ?? CONFIG.aa.moduleHits, m.targetPlanet ? m.targetPlanet.id : -1]),
     ca: G.cargos.map(fly),
     fl: G.flak.map(fly),
     sh: G.shells.map(sh => [sh.id, sh.from.planet.id, sh.from.sector, sh.to.sector, sh.owner, r3(sh.a0), r3(sh.a1), r3(sh.t)]),
@@ -345,8 +345,8 @@ function applySnapshot(s) {
     c.contest = ct ? { attacker: ct[0], force: ct[1], defense: ct[2], initialDefense: ct[3], from: ct[4] >= 0 ? p.cells[0][ct[4]] : null } : null;
   }
   const stamp = stampFor(s.t);
-  G.missiles = syncFlying(G.missiles, s.mi, null, stamp);
-  G.modules = syncFlying(G.modules, s.mo, (o, r) => { o.hp = r[6]; }, stamp);
+  G.missiles = syncFlying(G.missiles, s.mi, (o, r) => { o.target = { x: r[6], y: r[7] }; }, stamp);
+  G.modules = syncFlying(G.modules, s.mo, (o, r) => { o.hp = r[6]; o.targetPlanet = r[7] >= 0 ? G.planets[r[7]] : null; }, stamp);
   G.cargos = syncFlying(G.cargos, s.ca, null, stamp);
   G.flak = syncFlying(G.flak, s.fl, null, stamp);
   const shells = new Map(G.shells.map(o => [o.id, o]));

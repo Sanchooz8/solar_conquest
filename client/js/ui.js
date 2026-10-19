@@ -182,7 +182,7 @@ function initBuildbar() {
       UI.aimingFleet = null;
       updateBuildbar();
       updateMissilebar();
-      if (UI.placing) showToast('Pose : cliquez un de vos territoires — Échap ou re-clic pour annuler', true);
+      if (UI.placing) showToast('Cliquez sur la planète : construction à l\'emplacement proposé (Maj + clic : choisir le territoire) — Échap pour annuler', true);
     });
   }
 }
@@ -442,6 +442,7 @@ function initInput() {
 
   window.addEventListener('mousemove', (e) => {
     UI.mouse.x = e.clientX; UI.mouse.y = e.clientY;
+    UI.shift = e.shiftKey;
     if (dragStart) {
       const dx = e.clientX - dragStart.x, dy = e.clientY - dragStart.y;
       if (Math.abs(dx) + Math.abs(dy) > 5) dragged = true;
@@ -461,6 +462,7 @@ function initInput() {
   });
 
   window.addEventListener('mouseup', (e) => {
+    UI.shift = e.shiftKey;
     if (dragStart && !dragged && e.target === canvas) handleClick(e.clientX, e.clientY);
     dragStart = null;
   });
@@ -480,8 +482,13 @@ function initInput() {
     }
   }, { passive: false });
 
+  // Maj enfoncée : pose manuelle des bâtiments
+  window.addEventListener('keyup', (e) => { if (e.key === 'Shift') UI.shift = false; });
   window.addEventListener('keydown', (e) => {
+    if (e.key === 'Shift') UI.shift = true;
     if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return; // saisie en cours
+    // Tab : planète suivante parmi les miennes
+    if (e.key === 'Tab' && G.phase === 'playing') { e.preventDefault(); cycleMyPlanet(e.shiftKey ? -1 : 1); return; }
     if (G.phase === 'playing' && !e.ctrlKey && !e.metaKey && !e.altKey) {
       const btn = hotkeyButton(e.code);
       if (btn) {
@@ -535,14 +542,8 @@ function updateHover(sx, sy) {
   if (G.phase === 'menu' || G.phase === 'over') { UI.hover = null; UI.hoverPlanet = null; return; }
   const w = screenToWorld(sx, sy);
   UI.hover = null; UI.hoverPlanet = null;
-  for (let i = G.planets.length - 1; i >= 0; i--) {
-    const p = G.planets[i];
-    if (Math.hypot(w.x - p.x, w.y - p.y) <= p.radius) {
-      UI.hoverPlanet = p;
-      UI.hover = cellAt(p, w.x, w.y); // null si le curseur est dans l'intérieur
-      break;
-    }
-  }
+  const hit = pickAt(w); // tient compte des planètes agrandies (vue stratégique)
+  if (hit) { UI.hoverPlanet = hit.planet; UI.hover = hit.cell; }
   canvas.style.cursor = (UI.aiming || UI.aimingColony || UI.aimingFleet) ? 'none' : (UI.placing ? 'crosshair' : (UI.hoverPlanet ? 'pointer' : 'default'));
 }
 
@@ -623,15 +624,9 @@ function handleClick(sx, sy) {
   }
 
   // Planète sous le curseur (corps entier, pas seulement la couronne)
-  let planet = null, cell = null;
-  for (let i = G.planets.length - 1; i >= 0; i--) {
-    const p = G.planets[i];
-    if (Math.hypot(w.x - p.x, w.y - p.y) <= p.radius) {
-      planet = p;
-      cell = cellAt(p, w.x, w.y);
-      break;
-    }
-  }
+  const hit = pickAt(w);
+  const planet = hit ? hit.planet : null;
+  let cell = hit ? hit.cell : null;
 
   // Clic dans le vide : libère le verrouillage
   if (!planet) {
@@ -666,13 +661,14 @@ function handleClick(sx, sy) {
   }
 
   if (G.phase !== 'playing') return;
-  if (!cell) return; // clic dans l'intérieur de la planète : rien
-  const me = G.players[G.me];
 
-  // Mode pose de bâtiment : le clic dépose le bâtiment choisi dans la barre
+  // Mode pose de bâtiment : un clic n'importe où sur la planète construit à
+  // l'emplacement proposé ; Maj + clic : sur le territoire visé
   if (UI.placing) {
     const type = UI.placing;
-    issue({ t: 'build', p: planet.id, s: cell.sector, b: type }, r => {
+    const target = UI.shift ? cell : suggestBuildCell(G.me, planet, type);
+    if (!target) { showToast(UI.shift ? 'Visez un de vos territoires libres' : 'Aucun territoire libre pour ce bâtiment sur cette planète'); return; }
+    issue({ t: 'build', p: planet.id, s: target.sector, b: type }, r => {
       if (!r.ok) { showToast(r.msg); return; }
       showToast(BUILDING_LABELS[type] + ' construit', true);
       if (UI.placing === type) UI.placing = null;
@@ -681,6 +677,7 @@ function handleClick(sx, sy) {
     return;
   }
 
+  if (!cell) return; // clic dans l'intérieur de la planète : rien
   // Clic sur un de mes territoires : rien à faire
   if (cell.owner === G.me) return;
 
@@ -731,9 +728,11 @@ function tickUI(dt) {
       updateBuildbar();
       updateMissilebar();
       updatePlanetInfo();
+      updateMyPlanets();
       layoutBottomBars();
     } else {
       el('planetinfo').hidden = true;
+      el('myplanets').hidden = true;
     }
   }
 }
@@ -918,15 +917,9 @@ function initDiplomacyUI() {
   canvas.addEventListener('contextmenu', (e) => {
     e.preventDefault();
     if (G.phase !== 'playing') return;
-    const w = screenToWorld(e.clientX, e.clientY);
-    for (let i = G.planets.length - 1; i >= 0; i--) {
-      const p = G.planets[i];
-      if (Math.hypot(w.x - p.x, w.y - p.y) <= p.radius) {
-        const c = cellAt(p, w.x, w.y);
-        if (c && c.owner !== null && c.owner !== G.me) openPlayerMenu(c.owner, e.clientX, e.clientY);
-        return;
-      }
-    }
+    const hit = pickAt(screenToWorld(e.clientX, e.clientY));
+    const c = hit && hit.cell;
+    if (c && c.owner !== null && c.owner !== G.me) openPlayerMenu(c.owner, e.clientX, e.clientY);
   });
 }
 

@@ -7,6 +7,7 @@ function main() {
   initMenu();
   initInput();
   initDiplomacyUI();
+  initMinimap();
 
   let last = performance.now();
   function frame(t) {
