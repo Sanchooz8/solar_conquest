@@ -44,9 +44,13 @@ Les comptes (e-mail + mot de passe) sont gérés par Supabase ; ils restent facu
 
 Le serveur vérifie le jeton de connexion de chaque joueur, réserve les pseudos des comptes (un invité ne peut pas les prendre) et enregistre chaque partie en ligne terminée (table `matches`, statistiques dans `player_stats`).
 
+## Langues
+
+Le jeu est en anglais par défaut, avec un sélecteur English / Français en haut à gauche de l'accueil (`?lang=fr` dans l'adresse force le français). Tous les textes sont dans `client/js/i18n.js` : dans le code, `T('clé', { param })` ; dans le HTML, l'attribut `data-i18n="clé"`. Le serveur envoie des clés (`{ k, p }`) que chaque joueur traduit dans sa langue.
+
 ## Tutoriel « Comment jouer ? »
 
-Le tutoriel du menu principal est dans `client/index.html` (bloc `#howto`), à mettre à jour à chaque évolution du jeu. Les chiffres (coûts, durées…) sont lus dans `CONFIG` grâce aux attributs `data-cfg` et restent justes tout seuls. Les illustrations sont dans `client/img/tuto/` ; `python3 tools/tuto_captures.py` les refait à partir du vrai jeu. Le build les intègre au fichier unique.
+Le tutoriel du menu principal est dans `client/index.html` (bloc `#howto`, une version par langue), à mettre à jour à chaque évolution du jeu. Les chiffres (coûts, durées…) sont lus dans `CONFIG` grâce aux attributs `data-cfg` et restent justes tout seuls. Les illustrations sont dans `client/img/tuto/en/` et `client/img/tuto/fr/` ; `python3 tools/tuto_captures.py` les refait à partir du vrai jeu. Le build les intègre au fichier unique.
 
 ## Versions
 

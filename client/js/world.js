@@ -18,7 +18,7 @@ function generatePlanetName(used) {
     name += NAME_SUFFIXES[Math.floor(Math.random() * NAME_SUFFIXES.length)];
     if (!used.has(name)) { used.add(name); return name; }
   }
-  return 'Monde ' + (used.size + 1);
+  return 'World ' + (used.size + 1);
 }
 
 // --- Utilitaires ---------------------------------------------

@@ -82,7 +82,7 @@ function publicList() {
 
 // --- Salons -----------------------------------------------------------------
 function createRoom(client, opts) {
-  if (rooms.size >= MAX_ROOMS) return send(client.ws, { k: 'error', msg: 'Le serveur est plein, réessayez plus tard.' });
+  if (rooms.size >= MAX_ROOMS) return send(client.ws, { k: 'error', msg: { k: 'srv.full' } });
   leaveRoom(client);
   const room = {
     id: 'r' + (nextRoomId++), code: makeCode(),
@@ -99,10 +99,10 @@ function createRoom(client, opts) {
 }
 
 function joinRoom(client, room) {
-  if (!room) return send(client.ws, { k: 'error', msg: 'Aucune partie ne correspond à ce code.' });
+  if (!room) return send(client.ws, { k: 'error', msg: { k: 'srv.noCode' } });
   if (client.seat && client.seat.room === room) return;
-  if (room.status !== 'waiting') return send(client.ws, { k: 'error', msg: 'Cette partie a déjà commencé.' });
-  if (room.seats.length >= room.maxPlayers) return send(client.ws, { k: 'error', msg: 'Cette partie est complète.' });
+  if (room.status !== 'waiting') return send(client.ws, { k: 'error', msg: { k: 'srv.started' } });
+  if (room.seats.length >= room.maxPlayers) return send(client.ws, { k: 'error', msg: { k: 'srv.full2' } });
   leaveRoom(client);
   seatClient(room, client);
 }
@@ -150,11 +150,11 @@ function startRoom(client) {
   const seat = client.seat;
   if (!seat) return;
   const room = seat.room;
-  if (room.seats[0] !== seat) return send(client.ws, { k: 'error', msg: "Seul l'hôte peut lancer la partie." });
+  if (room.seats[0] !== seat) return send(client.ws, { k: 'error', msg: { k: 'srv.hostOnly' } });
   if (room.status !== 'waiting') return;
   const humans = room.seats.map(s => s.pseudo);
   const bots = room.fillBots ? Math.max(0, room.maxPlayers - humans.length) : 0;
-  if (humans.length + bots < 2) return send(client.ws, { k: 'error', msg: 'Il faut au moins un adversaire : attendez un joueur ou activez les bots.' });
+  if (humans.length + bots < 2) return send(client.ws, { k: 'error', msg: { k: 'srv.needOpponent' } });
 
   room.sim = startGame({ planets: room.planets, humans, bots });
   room.status = 'playing';
@@ -218,7 +218,7 @@ function rejoin(client, tok) {
   if (!seat || seat.room.status !== 'playing' || !seat.room.sim) return false;
   const p = seat.room.sim.G.players[seat.pid];
   if (!p || p.isBot) return false;
-  if (seat.client && seat.client !== client) { seat.client.seat = null; send(seat.ws, { k: 'closed', msg: 'Partie reprise dans un autre onglet.' }); }
+  if (seat.client && seat.client !== client) { seat.client.seat = null; send(seat.ws, { k: 'closed', msg: { k: 'srv.otherTab' } }); }
   seat.ws = client.ws; seat.client = client; seat.goneAt = null;
   client.seat = seat; client.pseudo = seat.pseudo;
   send(client.ws, { k: 'start', setup: seat.room.setup, you: seat.pid, rejoin: true });
@@ -233,7 +233,7 @@ async function hello(client, m) {
   let account = null, authError = null;
   if (m.auth && supa.enabled()) {
     account = await supa.verifyUser(String(m.auth));
-    if (!account) authError = 'Votre session a expiré : reconnectez-vous.';
+    if (!account) authError = { k: 'acc.e.session' };
   }
   client.account = account;
   client.pseudo = account ? account.pseudo : (clean(m.pseudo, 16) || 'Pilote');
@@ -261,7 +261,7 @@ function onMessage(client, raw) {
     // Création et entrée dans un salon : après vérification du compte / du pseudo
     case 'create': case 'join': case 'joinId':
       client.authPending.then(() => {
-        if (client.reserved) return send(client.ws, { k: 'error', msg: `Le pseudo « ${client.pseudo} » appartient à un joueur inscrit : connectez-vous, ou choisissez un autre pseudo.` });
+        if (client.reserved) return send(client.ws, { k: 'error', msg: { k: 'srv.reserved', p: { name: client.pseudo } } });
         if (m.k === 'create') createRoom(client, m.opts || {});
         else if (m.k === 'join') joinRoom(client, rooms.get(String(m.code || '').toUpperCase()));
         else joinRoom(client, [...rooms.values()].find(r => r.id === m.id));

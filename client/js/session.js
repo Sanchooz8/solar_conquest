@@ -85,13 +85,13 @@ const cellRef = (p, s) => { const pl = G.planets[p]; return pl ? pl.cells[0][s] 
 // (l'hôte ne fait jamais confiance aveuglément à un client)
 function applyCommand(pid, c) {
   const me = G.players[pid];
-  if (!me || !c) return { ok: false, msg: 'Commande invalide' };
+  if (!me || !c) return { ok: false, msg: T('err.badCommand') };
   const playing = G.phase === 'playing';
   switch (c.t) {
     case 'found': {
       if (G.phase !== 'placement' || me.colonyPlaced) return { ok: false };
       const cell = cellRef(c.p, c.s);
-      if (!cell || cell.owner !== null || cell.destroyed) return { ok: false, msg: 'Territoire déjà pris' };
+      if (!cell || cell.owner !== null || cell.destroyed) return { ok: false, msg: T('err.taken') };
       foundColony(me, cell);
       if (G.players.every(p => p.isBot || p.colonyPlaced)) startBotPlacement();
       return { ok: true };
@@ -99,16 +99,16 @@ function applyCommand(pid, c) {
     case 'build': {
       if (!playing || !me.alive) return { ok: false };
       const cell = cellRef(c.p, c.s);
-      if (!cell) return { ok: false, msg: 'Territoire inconnu' };
-      if (!BUILDING_NAMES[c.b]) return { ok: false, msg: 'Bâtiment inconnu' };
+      if (!cell) return { ok: false, msg: T('err.unknownCell') };
+      if (!BUILDING_NAMES[c.b]) return { ok: false, msg: T('err.unknownBuilding') };
       return buildOn(me, cell, c.b);
     }
     case 'attack': {
       if (!playing || !me.alive) return { ok: false };
       const cell = cellRef(c.p, c.s);
-      if (!cell || cell.destroyed) return { ok: false, msg: 'Territoire inconnu' };
-      if (!cellNeighbors(cell).some(n => n.owner === pid && !n.destroyed)) return { ok: false, msg: 'Hors de portée' };
-      if (cell.contest && cell.contest.attacker !== pid) return { ok: false, msg: 'Territoire déjà attaqué par un tiers' };
+      if (!cell || cell.destroyed) return { ok: false, msg: T('err.unknownCell') };
+      if (!cellNeighbors(cell).some(n => n.owner === pid && !n.destroyed)) return { ok: false, msg: T('err.outOfReach') };
+      if (cell.contest && cell.contest.attacker !== pid) return { ok: false, msg: T('err.thirdParty') };
       return attackCell(me, cell);
     }
     case 'missiles': {
@@ -148,7 +148,7 @@ function applyCommand(pid, c) {
       return { ok: true };
     }
   }
-  return { ok: false, msg: 'Commande inconnue' };
+  return { ok: false, msg: T('err.unknownCommand') };
 }
 
 // ============================================================
@@ -366,8 +366,8 @@ function applySnapshot(s) {
   G.phase = s.ph === 'over' ? G.phase : s.ph;
   if (prevPhase === 'placement' && G.phase !== 'placement') {
     hidePrompt();
-    if (Session.rejoining) showToast('Reconnecté : vous reprenez la partie', true);
-    else if (G.phase === 'playing') showToast('La partie commence — étendez-vous !', true);
+    if (Session.rejoining) showToast(T('msg.reconnected'), true);
+    else if (G.phase === 'playing') showToast(T('msg.gameStarts'), true);
   }
   Session.rejoining = false;
   if (s.ph === 'over' && prevPhase !== 'over') endGame(s.w === null ? null : G.players[s.w]);
@@ -426,13 +426,13 @@ function sessionTick(rawDt) {
     }
     // Clients silencieux : remplacés par un bot
     for (const [peer, pid] of S.seats) {
-      if (now - (S.lastSeen.get(peer) || now) > PEER_TIMEOUT) dropSeat(peer, 'ne répond plus');
+      if (now - (S.lastSeen.get(peer) || now) > PEER_TIMEOUT) dropSeat(peer, T('why.noAnswer'));
     }
   }
   if (S.role === 'client') {
     if (S.hbT >= 1) { S.hbT = 0; S.transport.send(S.hostPeer, { k: 'ping' }); }
     if (S.transport.kind !== 'ws' && G.phase !== 'menu' && G.phase !== 'over' && now - (S.lastSeen.get(S.hostPeer) || now) > PEER_TIMEOUT) {
-      hostLost("L'hôte ne répond plus : la partie est terminée.");
+      hostLost(T('end.hostSilent'));
     }
   }
 }
@@ -456,8 +456,8 @@ function botifyPlayer(pid, why) {
     placeBotColony(p, taken);
     if (G.players.every(q => q.isBot || q.colonyPlaced)) startBotPlacement();
   }
-  showToast(`${p.name} a quitté la partie (${why}) : un bot le remplace`);
-  Session.event({ k: 'toast', to: -1, msg: `${p.name} a quitté la partie : un bot le remplace` });
+  showToast(T('msg.leftWhy', { name: p.name, why }));
+  Session.event({ k: 'toast', to: -1, msg: T('msg.left', { name: p.name }) });
 }
 
 function hostLost(msg) {
@@ -465,9 +465,9 @@ function hostLost(msg) {
   Session.close();
   G.phase = 'over';
   el('endscreen').hidden = false;
-  el('end-kicker').textContent = 'CONNEXION PERDUE';
-  el('end-title').textContent = 'FIN DE PARTIE';
-  el('end-sub').textContent = msg;
+  el('end-kicker').textContent = T('end.lostKicker');
+  el('end-title').textContent = T('end.over');
+  el('end-sub').textContent = txt(msg);
 }
 
 // Messages reçus pendant la partie (le salon a ses propres messages, cf. net.js)
@@ -480,12 +480,12 @@ function sessionMessage(peer, m) {
     if (m.k === 'cmd') {
       const r = applyCommand(pid, m.c) || { ok: false };
       S.transport.send(peer, { k: 'res', id: m.id, r: { ok: !!r.ok, msg: r.msg, launched: r.launched, colonists: r.colonists, accepted: r.accepted, clash: r.clash, free: r.free } });
-    } else if (m.k === 'bye') dropSeat(peer, 'parti');
+    } else if (m.k === 'bye') dropSeat(peer, T('why.left'));
   } else if (S.role === 'client') {
     if (peer !== S.hostPeer) return;
     if (m.k === 'snap') applySnapshot(m);
     else if (m.k === 'res') { const cb = S.pending.get(m.id); S.pending.delete(m.id); if (cb) cb(m.r); }
-    else if (m.k === 'bye') hostLost("L'hôte a quitté la partie.");
+    else if (m.k === 'bye') hostLost(T('end.hostLeft'));
   }
 }
 

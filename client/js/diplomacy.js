@@ -28,9 +28,9 @@ function pendingRequest(from, to) {
 // Proposer une alliance
 function requestAlliance(fromId, toId) {
   const from = G.players[fromId], to = G.players[toId];
-  if (!from || !to || !to.alive || !from.alive || fromId === toId) return { ok: false, msg: 'Joueur invalide' };
-  if (areAllied(fromId, toId)) return { ok: false, msg: `Déjà allié avec ${to.name}` };
-  if (pendingRequest(fromId, toId)) return { ok: false, msg: `Proposition déjà envoyée à ${to.name}` };
+  if (!from || !to || !to.alive || !from.alive || fromId === toId) return { ok: false, msg: T('err.badPlayer') };
+  if (areAllied(fromId, toId)) return { ok: false, msg: T('err.alreadyAllied', { name: to.name }) };
+  if (pendingRequest(fromId, toId)) return { ok: false, msg: T('err.alreadyProposed', { name: to.name }) };
   // Proposition croisée : l'autre nous l'avait déjà proposée → accord immédiat
   const crossed = pendingRequest(toId, fromId);
   if (crossed) { answerAlliance(crossed, true); return { ok: true, accepted: true }; }
@@ -101,7 +101,7 @@ function isTraitor(id) {
 
 function betrayAlliance(traitorId, victimId, how) {
   const al = allianceOf(traitorId, victimId);
-  if (!al) return { ok: false, msg: 'Aucune alliance à trahir' };
+  if (!al) return { ok: false, msg: T('err.noAlliance') };
   G.alliances.splice(G.alliances.indexOf(al), 1);
   const D = CONFIG.diplomacy;
   const free = isTraitor(victimId); // trahir un traître : aucune pénalité

@@ -30,7 +30,7 @@ let _entityId = 1;
 function nextEntityId() { return _entityId++; }
 
 // humans : pseudos des joueurs humains (le premier est l'hôte / le joueur solo)
-function newGame(numPlanets, numBots, humans = ['Vous']) {
+function newGame(numPlanets, numBots, humans = ['You']) {
   G.planets = generateSystem(numPlanets);
   G.cellsTotal = totalCells(G.planets);
   G.players = [];
@@ -237,17 +237,17 @@ function makeContest(attackerId, cell, force, fromCell) {
 // prélevée proportionnellement sur chacun de ses territoires non contestés.
 // Gère aussi le renfort et le choc frontal (contre-attaque du défenseur).
 function attackCell(player, dstCell) {
-  if (dstCell.destroyed) return { ok: false, msg: 'Territoire détruit' };
-  if (dstCell.owner === player.id) return { ok: false, msg: 'Cible invalide' };
-  if (areAllied(player.id, dstCell.owner)) return { ok: false, msg: `Alliance en cours avec ${G.players[dstCell.owner].name} : attaque impossible` };
-  if (player.money < CONFIG.combat.attackCost) return { ok: false, msg: 'Argent insuffisant' };
+  if (dstCell.destroyed) return { ok: false, msg: T('err.destroyed') };
+  if (dstCell.owner === player.id) return { ok: false, msg: T('err.badTarget') };
+  if (areAllied(player.id, dstCell.owner)) return { ok: false, msg: T('err.alliedAttack', { name: G.players[dstCell.owner].name }) };
+  if (player.money < CONFIG.combat.attackCost) return { ok: false, msg: T('err.noMoney') };
 
   // Force engagée : 10 % de ma population LOCALE (territoires à portée de
   // la cible, hors territoires déjà contestés), prélevée proportionnellement
   const myCells = localCells(player.id, dstCell, { excludeContested: true });
   const total = myCells.reduce((s, c) => s + c.pop, 0);
   const drawn = Math.floor(total * CONFIG.combat.attackShare);
-  if (drawn < CONFIG.combat.minAttackForce) return { ok: false, msg: 'Population insuffisante à proximité pour attaquer' };
+  if (drawn < CONFIG.combat.minAttackForce) return { ok: false, msg: T('err.noPopNear') };
   // Base militaire à portée : +20 % de force par base (cumul plafonné)
   const nBases = Math.min(CONFIG.military.maxAttackBases, basesInRange(player.id, dstCell));
   const force = drawn * (1 + CONFIG.military.attackBonus * nBases);
@@ -336,13 +336,13 @@ function suggestBuildCell(pid, planet, type) {
 
 // Construire un bâtiment sur un territoire possédé
 function buildOn(player, cell, type) {
-  if (type === 'spaceport' && !CONFIG.features.fleets) return { ok: false, msg: 'Les vaisseaux sont désactivés' };
-  if (cell.owner !== player.id) return { ok: false, msg: 'Territoire non possédé' };
-  if (cell.building) return { ok: false, msg: 'Bâtiment déjà présent' };
-  if (cell.contest) return { ok: false, msg: 'Territoire en combat' };
+  if (type === 'spaceport' && !CONFIG.features.fleets) return { ok: false, msg: T('err.fleetsOff') };
+  if (cell.owner !== player.id) return { ok: false, msg: T('err.notOwned') };
+  if (cell.building) return { ok: false, msg: T('err.hasBuilding') };
+  if (cell.contest) return { ok: false, msg: T('err.inCombat') };
   // Coût progressif : ×1,10 par bâtiment du même type déjà posé sur la planète
   const cost = buildingCost(cell.planet, type);
-  if (player.money < cost) return { ok: false, msg: 'Argent insuffisant' };
+  if (player.money < cost) return { ok: false, msg: T('err.noMoney') };
   player.money -= cost;
   cell.building = type;
   const pl = cell.planet;
@@ -401,10 +401,10 @@ function launchMissiles(player, planet, count, target) {
   // à ce que le joueur peut payer
   const unit = CONFIG.missiles.launchCost;
   const affordable = Math.floor(player.money / unit);
-  if (affordable < 1 && loadedSilos(player.id, planet).length) return { ok: false, msg: `Fonds insuffisants : ${unit} $ par missile` };
+  if (affordable < 1 && loadedSilos(player.id, planet).length) return { ok: false, msg: T('err.missileFunds', { n: unit }) };
   const volley = missileVolley(player.id, planet, Math.min(count, affordable), target);
   const n = volley.length;
-  if (n === 0) return { ok: false, msg: 'Aucun missile chargé sur cette planète' };
+  if (n === 0) return { ok: false, msg: T('err.noMissile') };
   player.money -= unit * n;
 
   // Chaque missile corrige son cap vers SON point quoi qu'il arrive (pas de
@@ -703,17 +703,17 @@ function colonyCenters(playerId, planet) {
 
 function launchColonyModule(player, planet, share, targetPlanet, targetAng = null) {
   const C = CONFIG.colony;
-  if (!targetPlanet) return { ok: false, msg: 'Le module ne peut viser qu\'une planète' };
+  if (!targetPlanet) return { ok: false, msg: T('err.modulePlanet') };
   const centers = colonyCenters(player.id, planet);
-  if (centers.length === 0) return { ok: false, msg: 'Aucun centre de colonisation sur cette planète' };
+  if (centers.length === 0) return { ok: false, msg: T('err.noColonyCenter') };
 
   const owned = planetCells(planet).filter(c => !c.destroyed && c.owner === player.id);
   const total = owned.reduce((s, c) => s + c.pop, 0);
   const colonists = Math.floor(total * share);
   if (colonists < C.minColonists) {
-    return { ok: false, msg: `Pas assez de colons (${C.minColonists} min)` };
+    return { ok: false, msg: T('err.fewColonists', { n: C.minColonists }) };
   }
-  if (player.money < C.launchCost) return { ok: false, msg: `Fonds insuffisants : ${C.launchCost} $ par envoi de colonisation` };
+  if (player.money < C.launchCost) return { ok: false, msg: T('err.colonyFunds', { n: C.launchCost }) };
   player.money -= C.launchCost;
 
   // Prélèvement proportionnel sur les territoires du joueur
@@ -794,7 +794,7 @@ function landModule(m, planet) {
   // (la croissance s'arrête au cap, cf. cellPopGrowth).
   if (cell.owner === attacker.id) {
     cell.pop += P;
-    notify(attacker.id, `${Math.round(P)} colons ont rejoint ${planet.name}`, true);
+    notify(attacker.id, T('msg.colonistsJoined', { n: Math.round(P), planet: planet.name }), true);
     return;
   }
 
@@ -802,10 +802,10 @@ function landModule(m, planet) {
   cell.owner = attacker.id;
   cell.contest = null;
   cell.pop = P; // peut dépasser le cap : la pop s'épuisera dans les combats
-  notify(attacker.id, `Module de colonisation arrivé sur ${planet.name} !`, true);
+  notify(attacker.id, T('msg.moduleLanded', { planet: planet.name }), true);
   const witnesses = new Set();
   for (const c of planetCells(planet)) if (!c.destroyed && c.owner !== null && c.owner !== attacker.id) witnesses.add(c.owner);
-  for (const id of witnesses) notify(id, `Des colons ennemis ont atterri sur ${planet.name} !`);
+  for (const id of witnesses) notify(id, T('msg.enemyLanded', { planet: planet.name }));
 
   // …puis attaque des 2 territoires adjacents (même anneau) avec la
   // population du module : le défenseur peut contre-attaquer normalement.
@@ -1073,7 +1073,7 @@ function shootDownCargo(m) {
   G.cargos.splice(i, 1);
   spawnBurst(m.x, m.y, '#f5c542', 8, 0.7);
   spawnBurst(m.x, m.y, '#ffb347', 6, 0.6);
-  notify(m.owner, 'Un de vos cargos a été abattu');
+  notify(m.owner, T('msg.cargoDown'));
 }
 
 // Distance d'un point au segment [A, B]
@@ -1090,7 +1090,7 @@ function cargoLost(m, i, color) {
 }
 
 function updateCargos(dt) {
-  const T = CONFIG.trade;
+  const TR = CONFIG.trade;
   const M = CONFIG.missiles;
   for (let i = G.cargos.length - 1; i >= 0; i--) {
     const m = G.cargos[i];
@@ -1109,9 +1109,9 @@ function updateCargos(dt) {
       // Décollage : montée verticale franche au-dessus du port, en suivant
       // le déplacement de la planète, jusqu'à bonne altitude
       const pv = planetVelocity(m.home);
-      m.vx = m.out.x * T.riseSpeed + pv.x;
-      m.vy = m.out.y * T.riseSpeed + pv.y;
-      if (Math.hypot(m.x - m.home.x, m.y - m.home.y) >= m.home.radius + T.riseAltitude) {
+      m.vx = m.out.x * TR.riseSpeed + pv.x;
+      m.vy = m.out.y * TR.riseSpeed + pv.y;
+      if (Math.hypot(m.x - m.home.x, m.y - m.home.y) >= m.home.radius + TR.riseAltitude) {
         m.state = 'flight'; m.flightT = 0;
       }
     } else {
@@ -1121,12 +1121,12 @@ function updateCargos(dt) {
       // Vitesse de croisière : 60 u/s, puis accélération progressive après
       // 40 s de voyage pour rattraper à coup sûr une planète plus rapide
       const voyage = m.life;
-      const cruise = T.speed + Math.max(0, voyage - T.boostAfter) * T.boostRate;
-      const turnRate = T.turn * cruise / T.speed; // rayon de virage constant à haute vitesse
+      const cruise = TR.speed + Math.max(0, voyage - TR.boostAfter) * TR.boostRate;
+      const turnRate = TR.turn * cruise / TR.speed; // rayon de virage constant à haute vitesse
 
       const sp0 = Math.hypot(m.vx, m.vy);
       if (sp0 < cruise) {
-        const ns = Math.min(cruise, sp0 + T.accel * dt);
+        const ns = Math.min(cruise, sp0 + TR.accel * dt);
         if (sp0 > 0.001) { m.vx *= ns / sp0; m.vy *= ns / sp0; }
         else { m.vx = m.out.x * ns; m.vy = m.out.y * ns; }
       } else if (sp0 > cruise * 1.05) {
@@ -1183,10 +1183,10 @@ function updateCargos(dt) {
     if (m.state === 'flight') {
       const c = cellCentroid(m.dest);
       if (segDist(px, py, m.x, m.y, c.x, c.y) < Math.max(6, m.dest.planet.band)) {
-        const k = m.mode === 'city' ? T.cityShare : 1;
-        const gS = Math.round(T.rewardSender * k);
+        const k = m.mode === 'city' ? TR.cityShare : 1;
+        const gS = Math.round(TR.rewardSender * k);
         // Commerce avec soi-même : seul l'expéditeur est payé
-        const gR = m.dest.owner === m.owner ? 0 : Math.round(T.rewardReceiver * k);
+        const gR = m.dest.owner === m.owner ? 0 : Math.round(TR.rewardReceiver * k);
         const sender = G.players[m.owner];
         const receiver = G.players[m.dest.owner];
         if (sender && sender.alive) sender.money += gS;
@@ -1194,17 +1194,17 @@ function updateCargos(dt) {
         spawnBurst(c.x, c.y, '#f5c542', 14, 1.2);
         spawnBurst(c.x, c.y, m.color, 8);
         if (sender && receiver && sender.id === receiver.id) {
-          notify(sender.id, `Commerce intérieur : +${gS} $`, true);
+          notify(sender.id, T('msg.tradeInner', { n: gS }), true);
         } else {
-          if (sender) notify(sender.id, `Cargo livré : +${gS} $ de commerce${m.mode === 'city' ? ' (ville, gain ÷ 2)' : ''}`, true);
-          if (receiver) notify(receiver.id, `Cargo reçu : +${gR} $ de commerce`, true);
+          if (sender) notify(sender.id, T(m.mode === 'city' ? 'msg.cargoDeliveredCity' : 'msg.cargoDelivered', { n: gS }), true);
+          if (receiver) notify(receiver.id, T('msg.cargoReceived', { n: gR }), true);
         }
         G.cargos.splice(i, 1);
         continue;
       }
     }
 
-    if (m.life > T.maxLife) cargoLost(m, i, m.color); // perdus dans l'espace
+    if (m.life > TR.maxLife) cargoLost(m, i, m.color); // perdus dans l'espace
   }
 }
 
@@ -1368,7 +1368,7 @@ function updateAA(dt) {
           G.modules.splice(G.modules.indexOf(t), 1);
           spawnBurst(t.x, t.y, '#ffb347', 12, 0.8);
           spawnBurst(t.x, t.y, t.color || '#ffffff', 6, 0.6);
-          notify(t.owner, 'Module de colonisation abattu par la DCA ennemie');
+          notify(t.owner, T('msg.moduleDown'));
         } else {
           spawnBurst(t.x, t.y, '#ffb347', 5, 0.5); // touché, mais tient encore
         }
@@ -1509,7 +1509,7 @@ function checkVictory() {
 
 // Les bots fondent leurs colonies une par une, puis la partie démarre
 function startBotPlacement() {
-  if (G.players.some(p => !p.isBot && p.id === G.me)) showPrompt('Colonie fondée. <strong>Les IA fondent leurs colonies…</strong>');
+  if (G.players.some(p => !p.isBot && p.id === G.me)) showPrompt(T('prompt.botsFounding'));
   // Retrouve la planète du joueur via la propriété des cellules
   const taken = new Set();
   for (const p of G.planets)
@@ -1525,7 +1525,7 @@ function startBotPlacement() {
     if (G.players !== game || G.phase !== 'placement') return;
     G.phase = 'playing';
     hidePrompt();
-    showToast('La partie commence — étendez-vous !', true);
+    showToast(T('msg.gameStarts'), true);
   }, 600);
   if (!bots.length) { begin(); return; }
   bots.forEach((bot, i) => {

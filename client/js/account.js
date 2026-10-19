@@ -35,7 +35,7 @@ const Account = {
       try { data = text ? JSON.parse(text) : null; } catch (e) { data = text; }
       return { ok: res.ok, status: res.status, data };
     } catch (e) {
-      return { ok: false, status: 0, data: { msg: 'Service des comptes injoignable. Vérifiez votre connexion.' } };
+      return { ok: false, status: 0, data: { msg: T('acc.unreachable') } };
     }
   },
 
@@ -44,22 +44,17 @@ const Account = {
     const d = r.data || {};
     const code = d.error_code || d.code || d.error || '';
     const map = {
-      invalid_credentials: 'E-mail ou mot de passe incorrect.',
-      invalid_grant: 'E-mail ou mot de passe incorrect.',
-      email_not_confirmed: "Adresse e-mail pas encore confirmée : cliquez sur le lien reçu par e-mail.",
-      user_already_exists: 'Un compte existe déjà avec cette adresse e-mail.',
-      email_exists: 'Un compte existe déjà avec cette adresse e-mail.',
-      weak_password: 'Mot de passe trop faible : 8 caractères minimum.',
-      over_email_send_rate_limit: "Trop d'e-mails envoyés : réessayez dans quelques minutes.",
-      over_request_rate_limit: 'Trop de tentatives : réessayez dans quelques minutes.',
-      signup_disabled: 'Les inscriptions sont fermées pour le moment.',
-      email_address_invalid: 'Adresse e-mail non valable.',
-      same_password: "Le nouveau mot de passe doit être différent de l'ancien.",
-      session_not_found: 'Session expirée : reconnectez-vous.',
+      invalid_credentials: 'acc.e.creds', invalid_grant: 'acc.e.creds',
+      email_not_confirmed: 'acc.e.unconfirmed',
+      user_already_exists: 'acc.e.exists', email_exists: 'acc.e.exists',
+      weak_password: 'acc.e.weak',
+      over_email_send_rate_limit: 'acc.e.mailRate', over_request_rate_limit: 'acc.e.rate',
+      signup_disabled: 'acc.e.signupOff', email_address_invalid: 'acc.e.badEmail',
+      same_password: 'acc.e.samePass', session_not_found: 'acc.e.session',
     };
-    if (map[code]) return map[code];
+    if (map[code]) return T(map[code]);
     if (r.status === 0) return d.msg;
-    return d.msg || d.error_description || d.message || 'Une erreur est survenue. Réessayez.';
+    return d.msg || d.error_description || d.message || T('acc.e.generic');
   },
 
   // --- Session ---------------------------------------------------------------
@@ -112,9 +107,9 @@ const Account = {
     if (this.session) await this.loadProfile();
     onAccountChange();
     if (redirect) {
-      if (redirect.error) showMenuToast(redirect.error_description ? 'Lien expiré ou déjà utilisé : recommencez.' : 'Lien non valable.');
+      if (redirect.error) showMenuToast(redirect.error_description ? T('acc.linkExpired') : T('acc.linkBad'));
       else if (redirect.type === 'recovery') openPasswordReset();
-      else if (redirect.type === 'signup' || redirect.type === 'email') showMenuToast('Adresse confirmée : vous êtes connecté !', true);
+      else if (redirect.type === 'signup' || redirect.type === 'email') showMenuToast(T('acc.confirmed'), true);
     }
   },
 
@@ -134,12 +129,12 @@ const Account = {
   // --- Actions -----------------------------------------------------------
   async register(pseudo, email, password) {
     const owner = await this.api('/rest/v1/rpc/pseudo_owner', { method: 'POST', body: { p: pseudo } });
-    if (owner.ok && owner.data) return { ok: false, msg: `Le pseudo « ${pseudo} » est déjà pris.` };
+    if (owner.ok && owner.data) return { ok: false, msg: T('acc.pseudoTaken', { name: pseudo }) };
     const r = await this.api('/auth/v1/signup?redirect_to=' + encodeURIComponent(this.redirectUrl()), {
       method: 'POST', body: { email, password, data: { pseudo } },
     });
     if (!r.ok) {
-      if (/database error/i.test(JSON.stringify(r.data || ''))) return { ok: false, msg: `Le pseudo « ${pseudo} » est déjà pris.` };
+      if (/database error/i.test(JSON.stringify(r.data || ''))) return { ok: false, msg: T('acc.pseudoTaken', { name: pseudo }) };
       return { ok: false, msg: this.errorText(r) };
     }
     if (r.data && r.data.access_token) {
@@ -148,7 +143,7 @@ const Account = {
       onAccountChange();
       return { ok: true };
     }
-    return { ok: true, confirm: true, msg: `Presque fini : cliquez sur le lien envoyé à ${email} pour confirmer votre compte.` };
+    return { ok: true, confirm: true, msg: T('acc.checkMail', { email }) };
   },
 
   async login(email, password) {
@@ -170,12 +165,12 @@ const Account = {
   async recover(email) {
     const r = await this.api('/auth/v1/recover?redirect_to=' + encodeURIComponent(this.redirectUrl()), { method: 'POST', body: { email } });
     if (!r.ok) return { ok: false, msg: this.errorText(r) };
-    return { ok: true, msg: `Si un compte existe pour ${email}, un e-mail vient de partir avec un lien pour choisir un nouveau mot de passe.` };
+    return { ok: true, msg: T('acc.recoverSent', { email }) };
   },
 
   async setPassword(password) {
     const t = await this.token();
-    if (!t) return { ok: false, msg: 'Lien expiré : recommencez « Mot de passe oublié ».' };
+    if (!t) return { ok: false, msg: T('acc.resetExpired') };
     const r = await this.api('/auth/v1/user', { method: 'PUT', token: t, body: { password } });
     if (!r.ok) return { ok: false, msg: this.errorText(r) };
     return { ok: true };

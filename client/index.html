@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -14,43 +14,48 @@
 
 <!-- ===== MENU DE DÉPART ===== -->
 <div id="menu" class="overlay">
+  <!-- Langue (en haut à gauche) -->
+  <div class="lang-switch" role="group" aria-label="Language / Langue">
+    <button data-setlang="en" lang="en">English</button>
+    <button data-setlang="fr" lang="fr">Français</button>
+  </div>
   <!-- Compte (en haut à droite) -->
   <div class="acct-chip" id="acct-chip">
-    <button class="link-btn" id="btn-account">Se connecter · S'inscrire</button>
-    <span class="acct-hint">pour conserver vos statistiques</span>
+    <button class="link-btn" id="btn-account">Log in · Sign up</button>
+    <span class="acct-hint">to reserve your name and keep your stats</span>
   </div>
 
   <!-- Écran 1 : accueil -->
   <section class="lobby-screen" id="scr-home">
     <div class="home-head">
-      <div class="menu-kicker">STRATÉGIE TEMPS RÉEL — MULTIJOUEUR</div>
+      <div class="menu-kicker" data-i18n="home.kicker">REAL-TIME STRATEGY — MULTIPLAYER</div>
       <h1 class="game-title">SOLAR<br>CONQUEST</h1>
-      <button class="howto-btn" id="btn-howto">Comment jouer ?</button>
+      <button class="howto-btn" id="btn-howto" data-i18n="home.howto">How to play?</button>
     </div>
 
     <label class="field pseudo-field" for="in-pseudo">
-      <span class="field-label">VOTRE PSEUDO</span>
-      <input id="in-pseudo" maxlength="16" autocomplete="nickname" placeholder="ex. Capitaine_Nova" spellcheck="false">
+      <span class="field-label" data-i18n="home.pseudo">YOUR NAME</span>
+      <input id="in-pseudo" maxlength="16" autocomplete="nickname" placeholder="e.g. Captain_Nova" data-i18n-ph="home.pseudoPh" spellcheck="false">
       <span class="field-err" id="pseudo-err"></span>
     </label>
 
     <div class="home-grid">
       <div class="panel glass">
-        <div class="panel-head"><span>PARTIES PUBLIQUES</span><button class="link-btn" id="btn-refresh">Actualiser</button></div>
+        <div class="panel-head"><span data-i18n="home.public">PUBLIC GAMES</span><button class="link-btn" id="btn-refresh" data-i18n="home.refresh">Refresh</button></div>
         <div class="games" id="games"></div>
         <div class="join-code">
-          <span class="field-label">PARTIE PRIVÉE</span>
+          <span class="field-label" data-i18n="home.private">PRIVATE GAME</span>
           <div class="code-row">
-            <input id="in-code" maxlength="6" placeholder="CODE" spellcheck="false" autocomplete="off" aria-label="Code de la partie privée">
-            <button class="btn-sec" id="btn-join-code">Rejoindre</button>
+            <input id="in-code" maxlength="6" placeholder="CODE" spellcheck="false" autocomplete="off" aria-label="Private game code" data-i18n-aria="home.codeAria">
+            <button class="btn-sec" id="btn-join-code" data-i18n="lob.join">Join</button>
           </div>
         </div>
       </div>
       <div class="panel glass panel-create">
-        <div class="panel-head"><span>NOUVELLE PARTIE</span></div>
-        <p class="panel-text">Choisissez le système, publique ou privée, et partagez le code avec vos amis.</p>
-        <button class="cta" id="btn-create">CRÉER UNE PARTIE</button>
-        <button class="btn-sec" id="btn-solo">Partie solo rapide contre 3 bots</button>
+        <div class="panel-head"><span data-i18n="home.new">NEW GAME</span></div>
+        <p class="panel-text" data-i18n="home.newText">Choose the system, public or private, and share the code with your friends.</p>
+        <button class="cta" id="btn-create" data-i18n="home.create">CREATE A GAME</button>
+        <button class="btn-sec" id="btn-solo" data-i18n="home.solo">Quick solo game against 3 bots</button>
       </div>
     </div>
     <div class="net-status" id="net-status"></div>
@@ -58,37 +63,37 @@
 
   <!-- Écran 2 : créer une partie -->
   <section class="lobby-screen" id="scr-create" hidden>
-    <div class="screen-title">Créer une partie</div>
+    <div class="screen-title" data-i18n="cr.title">Create a game</div>
     <div class="panel glass form-panel">
       <label class="field" for="in-gname">
-        <span class="field-label">NOM DE LA PARTIE</span>
+        <span class="field-label" data-i18n="cr.name">GAME NAME</span>
         <input id="in-gname" maxlength="28" spellcheck="false">
       </label>
       <div class="field">
-        <span class="field-label">VISIBILITÉ</span>
-        <div class="seg" role="radiogroup" aria-label="Visibilité">
-          <button class="seg-btn active" data-vis="public" role="radio" aria-checked="true">Publique</button>
-          <button class="seg-btn" data-vis="private" role="radio" aria-checked="false">Privée (code)</button>
+        <span class="field-label" data-i18n="cr.vis">VISIBILITY</span>
+        <div class="seg" role="radiogroup" aria-label="Visibility" data-i18n-aria="cr.visAria">
+          <button class="seg-btn active" data-vis="public" role="radio" aria-checked="true" data-i18n="lob.public">Public</button>
+          <button class="seg-btn" data-vis="private" role="radio" aria-checked="false" data-i18n="cr.privateCode">Private (code)</button>
         </div>
-        <span class="field-help" id="vis-help">Visible dans la liste des parties publiques.</span>
+        <span class="field-help" id="vis-help"></span>
       </div>
       <div class="menu-options">
         <div class="opt-row">
-          <div class="opt-head"><span>JOUEURS MAX</span><span class="opt-val" id="val-maxp">4</span></div>
+          <div class="opt-head"><span data-i18n="cr.maxp">MAX PLAYERS</span><span class="opt-val" id="val-maxp">4</span></div>
           <input type="range" id="opt-maxp" min="2" max="6" value="4" step="1">
         </div>
         <div class="opt-row">
-          <div class="opt-head"><span>PLANÈTES</span><span class="opt-val" id="val-planets">7</span></div>
+          <div class="opt-head"><span data-i18n="cr.planets">PLANETS</span><span class="opt-val" id="val-planets">7</span></div>
           <input type="range" id="opt-planets" min="5" max="9" value="7" step="1">
         </div>
       </div>
       <label class="check" for="opt-fill">
         <input type="checkbox" id="opt-fill" checked>
-        <span>Compléter les places libres avec des bots au lancement</span>
+        <span data-i18n="cr.fill">Fill empty seats with bots at launch</span>
       </label>
       <div class="form-actions">
-        <button class="btn-sec" id="btn-create-back">Retour</button>
-        <button class="cta" id="btn-create-go">CRÉER LE SALON</button>
+        <button class="btn-sec" id="btn-create-back" data-i18n="cr.back">Back</button>
+        <button class="cta" id="btn-create-go" data-i18n="cr.go">CREATE THE ROOM</button>
       </div>
     </div>
   </section>
@@ -99,18 +104,18 @@
     <div class="panel glass form-panel">
       <div class="lobby-code">
         <div>
-          <span class="field-label">CODE DE LA PARTIE</span>
+          <span class="field-label" data-i18n="lb.code">GAME CODE</span>
           <div class="code-big" id="lobby-code">——</div>
         </div>
-        <button class="btn-sec" id="btn-copy-code">Copier</button>
+        <button class="btn-sec" id="btn-copy-code" data-i18n="lb.copy">Copy</button>
       </div>
       <div class="lobby-meta" id="lobby-meta"></div>
-      <span class="field-label">JOUEURS</span>
+      <span class="field-label" data-i18n="lb.players">PLAYERS</span>
       <div class="slots" id="lobby-slots"></div>
       <p class="field-help" id="lobby-note"></p>
       <div class="form-actions">
-        <button class="btn-sec" id="btn-lobby-leave">Quitter le salon</button>
-        <button class="cta" id="btn-start">LANCER LA PARTIE</button>
+        <button class="btn-sec" id="btn-lobby-leave" data-i18n="lb.leave">Leave the room</button>
+        <button class="cta" id="btn-start" data-i18n="lb.start">START THE GAME</button>
       </div>
     </div>
   </section>
@@ -121,23 +126,27 @@
      - Les chiffres entre balises data-cfg="chemin" sont lus dans CONFIG
        (js/config.js) à l'ouverture : ils restent justes tout seuls.
        data-pct : affiché en pourcentage ; data-cost="type" : coût d'un bâtiment.
-     - Les illustrations sont dans img/tuto/ (captures du jeu, en WebP), à
-       refaire quand l'écran change. Le build les intègre au fichier unique.
+     - Deux versions du texte : <div class="howto-lang" data-lang="en"> et
+       data-lang="fr" — modifier LES DEUX. Le sommaire suit les <h2>.
+     - Les illustrations sont dans img/tuto/en/ et img/tuto/fr/ (captures du
+       jeu dans chaque langue, en WebP), à refaire quand l'écran change :
+       python3 tools/tuto_captures.py. Le build les intègre au fichier unique.
      ===================================================================== -->
 <div id="howto" class="overlay modal" hidden>
   <div class="panel glass howto-panel" role="dialog" aria-modal="true" aria-labelledby="howto-title">
     <div class="howto-top">
-      <div class="howto-title" id="howto-title">Comment jouer ?</div>
-      <button class="link-btn" id="howto-close" aria-label="Fermer le tutoriel">Fermer</button>
+      <div class="howto-title" id="howto-title" data-i18n="home.howto">How to play?</div>
+      <button class="link-btn" id="howto-close" aria-label="Close" data-i18n="ui.close" data-i18n-aria="ui.close">Close</button>
     </div>
     <div class="howto-wrap">
-      <nav class="howto-toc" id="howto-toc" aria-label="Sommaire du tutoriel"></nav>
+      <nav class="howto-toc" id="howto-toc" aria-label="Contents"></nav>
       <article class="howto-body" id="howto-body">
+      <div class="howto-lang" data-lang="fr" lang="fr">
 
         <section id="ht-but">
           <h2>Le but du jeu</h2>
           <p>Solar Conquest est un jeu de conquête en temps réel dans un système solaire. Chaque planète est découpée en dizaines de <strong>territoires</strong>, disposés en couronne à sa surface. Vous partez d'un seul territoire et devez étendre votre empire de planète en planète, contre d'autres joueurs et des bots.</p>
-          <figure><img src="img/tuto/systeme.webp" alt="Vue d'ensemble d'un système solaire en cours de partie" loading="lazy"><figcaption>Le système solaire : les planètes tournent sur elles-mêmes et autour du soleil. L'anneau coloré montre qui possède quoi.</figcaption></figure>
+          <figure><img src="img/tuto/fr/systeme.webp" alt="Vue d'ensemble d'un système solaire en cours de partie" loading="lazy"><figcaption>Le système solaire : les planètes tournent sur elles-mêmes et autour du soleil. L'anneau coloré montre qui possède quoi.</figcaption></figure>
           <div class="ht-box win">
             <strong>Victoire</strong> : contrôler <b data-cfg="victoryShare" data-pct></b> des territoires du système, ou être le dernier joueur en vie.<br>
             <strong>Défaite</strong> : perdre tous ses territoires. En multijoueur, la partie continue pour les autres.
@@ -152,12 +161,12 @@
             <li>Cliquez sur un territoire de sa couronne pour y <strong>fonder votre colonie</strong>, avec <b data-cfg="pop.startPop"></b> habitants.</li>
             <li>Les bots fondent ensuite les leurs, puis la partie commence.</li>
           </ol>
-          <figure><img src="img/tuto/fondation.webp" alt="Planète verrouillée pendant la fondation de la colonie" loading="lazy"><figcaption>Choisissez bien : une grande planète offre plus de place, une planète isolée est plus tranquille.</figcaption></figure>
+          <figure><img src="img/tuto/fr/fondation.webp" alt="Planète verrouillée pendant la fondation de la colonie" loading="lazy"><figcaption>Choisissez bien : une grande planète offre plus de place, une planète isolée est plus tranquille.</figcaption></figure>
         </section>
 
         <section id="ht-interface">
           <h2>L'écran de jeu</h2>
-          <figure><img src="img/tuto/interface.webp" alt="L'interface complète pendant une partie" loading="lazy"></figure>
+          <figure><img src="img/tuto/fr/interface.webp" alt="L'interface complète pendant une partie" loading="lazy"></figure>
           <ul>
             <li><strong>En haut au centre</strong> : votre argent et votre population, avec leur progression par seconde, et vos bâtiments.</li>
             <li><strong>En haut à gauche</strong> : le tableau des joueurs, puis <strong>Mes planètes</strong>, avec les alertes COMBAT et EN APPROCHE.</li>
@@ -183,7 +192,7 @@
         <section id="ht-combat">
           <h2>Conquérir des territoires</h2>
           <p>Cliquez sur un territoire <strong>voisin</strong> des vôtres pour l'attaquer. Chaque attaque coûte <b data-cfg="combat.attackCost" data-unit=" $"></b> et engage <b data-cfg="combat.attackShare" data-pct></b> de votre population proche du front (à <b data-cfg="combat.localRange"></b> territoires ou moins).</p>
-          <figure><img src="img/tuto/combat.webp" alt="Une attaque en cours à la frontière entre deux joueurs" loading="lazy"><figcaption>Une attaque en cours : la force de l'attaque (en haut) contre la défense du territoire (en bas).</figcaption></figure>
+          <figure><img src="img/tuto/fr/combat.webp" alt="Une attaque en cours à la frontière entre deux joueurs" loading="lazy"><figcaption>Une attaque en cours : la force de l'attaque (en haut) contre la défense du territoire (en bas).</figcaption></figure>
           <ul>
             <li>La <strong>défense</strong> d'un territoire est sa population, plus un petit soutien de la population voisine. Un territoire neutre résiste avec <b data-cfg="combat.neutralDefense"></b>.</li>
             <li>Le combat dure quelques secondes : l'attaque use la défense et inversement.</li>
@@ -196,7 +205,7 @@
         <section id="ht-batiments">
           <h2>Les bâtiments</h2>
           <p>Choisissez un bâtiment dans la barre du bas (ou touche 1 à 9), puis cliquez sur la planète : le jeu le construit à l'<strong>emplacement conseillé</strong>, montré en transparence. <strong>Maj + clic</strong> pour choisir vous-même le territoire. Un territoire n'accueille qu'un bâtiment, perdu si le territoire est conquis ou détruit.</p>
-          <figure><img src="img/tuto/batiments.webp" alt="Une planète avec silos, industries, bouclier et défense anti-aérienne" loading="lazy"></figure>
+          <figure><img src="img/tuto/fr/batiments.webp" alt="Une planète avec silos, industries, bouclier et défense anti-aérienne" loading="lazy"></figure>
           <table class="ht-table">
             <tr><td><img data-ico="city" alt=""></td><td><strong>Ville</strong> <span class="ht-cost" data-cost="city"></span></td><td>Plafond de population <b data-cfg="pop.cityCapBonus" data-plus></b> et croissance ×<b data-cfg="pop.cityGrowthMult"></b>.</td></tr>
             <tr><td><img data-ico="industry" alt=""></td><td><strong>Industrie</strong> <span class="ht-cost" data-cost="industry"></span></td><td><b data-cfg="econ.industryIncome" data-plus></b> $/s.</td></tr>
@@ -213,19 +222,19 @@
         <section id="ht-missiles">
           <h2>Missiles et cratères</h2>
           <p>Avec des silos sur la planète verrouillée, cliquez sur <strong>Lancement missiles</strong> (touche 0), visez un point de la carte et cliquez. Par défaut, la salve part avec <strong>tous les missiles prêts</strong> ; les boutons − et + règlent le nombre. Chaque missile coûte <b data-cfg="missiles.launchCost" data-unit=" $"></b>.</p>
-          <figure><img src="img/tuto/missiles.webp" alt="Visée d'une salve de missiles" loading="lazy"><figcaption>En visée, un petit viseur par missile montre où il tombera : les salves font des barrages.</figcaption></figure>
+          <figure><img src="img/tuto/fr/missiles.webp" alt="Visée d'une salve de missiles" loading="lazy"><figcaption>En visée, un petit viseur par missile montre où il tombera : les salves font des barrages.</figcaption></figure>
           <ul>
             <li>Les missiles montent droit, puis filent en courbe, déviés par la gravité du soleil et des planètes. Visez en anticipant le mouvement de la cible.</li>
             <li>Chaque impact creuse un <strong>cratère</strong> : les territoires touchés sont vidés (ils redeviennent neutres et reconquérables) ou <strong>détruits pour toujours</strong> si le trou est profond. Les planètes bombardées rétrécissent réellement.</li>
             <li>Les boucliers et les défenses anti-aériennes protègent contre les missiles.</li>
           </ul>
-          <figure><img src="img/tuto/crateres.webp" alt="Une planète criblée de cratères" loading="lazy" class="narrow"></figure>
+          <figure><img src="img/tuto/fr/crateres.webp" alt="Une planète criblée de cratères" loading="lazy" class="narrow"></figure>
         </section>
 
         <section id="ht-colonisation">
           <h2>Coloniser d'autres planètes</h2>
           <p>Avec un centre de colonisation sur la planète verrouillée, choisissez le pourcentage de votre population à embarquer, cliquez sur <strong>Lancement colonisation</strong>, puis visez un point du pourtour d'une autre planète. Chaque envoi coûte <b data-cfg="colony.launchCost" data-unit=" $"></b>, plus les colons embarqués (au moins <b data-cfg="colony.minColonists"></b>).</p>
-          <figure><img src="img/tuto/colonisation.webp" alt="Visée d'un module de colonisation sur une planète" loading="lazy"><figcaption>Le viseur s'accroche autour de la planète visée ; l'arc vert montre la zone d'atterrissage.</figcaption></figure>
+          <figure><img src="img/tuto/fr/colonisation.webp" alt="Visée d'un module de colonisation sur une planète" loading="lazy"><figcaption>Le viseur s'accroche autour de la planète visée ; l'arc vert montre la zone d'atterrissage.</figcaption></figure>
           <ul>
             <li>Le module suit sa cible et contourne la planète si besoin. Les boucliers ne l'arrêtent pas, mais les défenses anti-aériennes peuvent l'abattre.</li>
             <li>Chez l'ennemi ou en territoire neutre, il prend le territoire d'atterrissage puis attaque ses deux voisins : c'est une <strong>tête de pont</strong>. Exploitez-la vite, la surpopulation fond.</li>
@@ -235,7 +244,7 @@
 
         <section id="ht-planetes">
           <h2>Gérer plusieurs planètes</h2>
-          <figure><img src="img/tuto/distance.webp" alt="Vue dézoomée en gestion à distance" loading="lazy"></figure>
+          <figure><img src="img/tuto/fr/distance.webp" alt="Vue dézoomée en gestion à distance" loading="lazy"></figure>
           <ul>
             <li><strong>Gestion à distance</strong> : quand vous dézoomez, un anneau aux couleurs des joueurs entoure chaque planète et toute sa bordure reste cliquable : vous pouvez attaquer et construire sans zoomer.</li>
             <li><strong>Mes planètes</strong> et la touche <span class="kbd2">Tab</span> : passez d'une de vos planètes à l'autre.</li>
@@ -247,7 +256,7 @@
         <section id="ht-diplo">
           <h2>Diplomatie</h2>
           <p>Clic droit sur un joueur du tableau (ou sur un de ses territoires) pour lui <strong>proposer une alliance</strong> de <b data-cfg="diplomacy.duration" data-min></b> minutes. Entre alliés, plus aucune attaque n'est possible.</p>
-          <figure><img src="img/tuto/diplomatie.webp" alt="Menu de diplomatie ouvert sur un joueur" loading="lazy" class="narrow"></figure>
+          <figure><img src="img/tuto/fr/diplomatie.webp" alt="Menu de diplomatie ouvert sur un joueur" loading="lazy" class="narrow"></figure>
           <p>On peut <strong>trahir</strong> une alliance (par le même menu, ou en touchant un allié avec un missile). Le traître est affiché à tous, et la défense de ses territoires est divisée par <b data-cfg="diplomacy.betrayDefenseDiv"></b> pendant <b data-cfg="diplomacy.betrayVulnerable"></b> s : le moment idéal pour l'attaquer sans pénalité.</p>
         </section>
 
@@ -266,7 +275,142 @@
           </table>
           <p class="ht-tip">Pour débuter : lancez une partie solo contre 3 bots depuis l'accueil.</p>
         </section>
-      </article>
+            </div>
+      <div class="howto-lang" data-lang="en" lang="en">
+        <section id="en-but">
+          <h2>The goal</h2>
+          <p>Solar Conquest is a real-time conquest game set in a solar system. Each planet is divided into dozens of <strong>territories</strong>, arranged in a ring on its surface. You start with a single territory and must expand your empire from planet to planet, against other players and bots.</p>
+          <figure><img src="img/tuto/en/systeme.webp" alt="Overview of a solar system during a game" loading="lazy"><figcaption>The solar system: planets spin and orbit the sun. The colored ring shows who owns what.</figcaption></figure>
+          <div class="ht-box win">
+            <strong>Victory</strong>: control <b data-cfg="victoryShare" data-pct></b> of the system's territories, or be the last player standing.<br>
+            <strong>Defeat</strong>: lose all your territories. In multiplayer, the game goes on for the others.
+          </div>
+          <p>Missiles destroy territories for good: the total shrinks and the victory threshold adjusts.</p>
+        </section>
+
+        <section id="en-debut">
+          <h2>Getting started: found your colony</h2>
+          <ol>
+            <li>Click a planet to <strong>lock</strong> it: the camera follows it (dashed green ring).</li>
+            <li>Click a territory on its rim to <strong>found your colony</strong>, with <b data-cfg="pop.startPop"></b> inhabitants.</li>
+            <li>The bots then found theirs, and the game begins.</li>
+          </ol>
+          <figure><img src="img/tuto/en/fondation.webp" alt="Planet locked while founding the colony" loading="lazy"><figcaption>Choose well: a big planet offers more room, an isolated planet is quieter.</figcaption></figure>
+        </section>
+
+        <section id="en-interface">
+          <h2>The game screen</h2>
+          <figure><img src="img/tuto/en/interface.webp" alt="The full interface during a game" loading="lazy"></figure>
+          <ul>
+            <li><strong>Top center</strong>: your money and population, with their rate per second, and your buildings.</li>
+            <li><strong>Top left</strong>: the players table, then <strong>My planets</strong>, with COMBAT and INCOMING alerts.</li>
+            <li><strong>Top right</strong>: the hovered or locked planet (population per player, buildings).</li>
+            <li><strong>Bottom left</strong>: the build bar (keys 1 to 9).</li>
+            <li><strong>Bottom right</strong>: missile and colonization launches, and the minimap.</li>
+          </ul>
+          <p>Drag the mouse to move the camera, use the wheel to zoom. Esc cancels the current action; clicking the locked planet again releases it.</p>
+        </section>
+
+        <section id="en-eco">
+          <h2>Money and population</h2>
+          <p>You start with <b data-cfg="econ.startMoney" data-unit=" $"></b>. Money comes in continuously:</p>
+          <ul>
+            <li>each inhabitant brings in a little (<b data-cfg="econ.incomePerPop"></b> $/s): a populous empire is a rich empire;</li>
+            <li>each <strong>industry</strong> adds <b data-cfg="econ.industryIncome"></b> $/s;</li>
+            <li><strong>trade ports</strong> send cargo ships that pay both players.</li>
+          </ul>
+          <p><strong>Population</strong> grows by itself on each territory, up to a cap of <b data-cfg="pop.baseCap"></b> per territory (<b data-cfg="pop.cityCapBonus" data-plus></b> with a city). It grows slowly at first, fast halfway, then slows down near the cap. It is also your army: attacks draw on population.</p>
+          <p><strong>Overpopulation</strong>: above the cap (after colonists land, for example), population melts away by itself, faster when the excess is larger. No point stockpiling it: use it quickly.</p>
+        </section>
+
+        <section id="en-combat">
+          <h2>Conquering territories</h2>
+          <p>Click a territory <strong>next to</strong> yours to attack it. Each attack costs <b data-cfg="combat.attackCost" data-unit=" $"></b> and commits <b data-cfg="combat.attackShare" data-pct></b> of your population near the front (<b data-cfg="combat.localRange"></b> territories away or less).</p>
+          <figure><img src="img/tuto/en/combat.webp" alt="An attack in progress at the border between two players" loading="lazy"><figcaption>An attack in progress: the attacking force (top) against the territory's defense (bottom).</figcaption></figure>
+          <ul>
+            <li>A territory's <strong>defense</strong> is its population, plus a little support from the neighboring population. A neutral territory resists with <b data-cfg="combat.neutralDefense"></b>.</li>
+            <li>The fight lasts a few seconds: the attack wears down the defense and vice versa.</li>
+            <li>If it wins, part of the force stays as a garrison and, if it is still strong enough, the attack <strong>rolls on</strong> to the next territory.</li>
+            <li>A freshly conquered territory is almost empty: it is vulnerable while its population grows back.</li>
+          </ul>
+          <p class="ht-tip">Tip: attack from a well-populated area. Only the population near the front counts.</p>
+        </section>
+
+        <section id="en-batiments">
+          <h2>Buildings</h2>
+          <p>Pick a building in the bottom bar (or key 1 to 9), then click the planet: the game builds it at the <strong>suggested spot</strong>, shown as a transparent preview. <strong>Shift + click</strong> to choose the territory yourself. A territory holds one building, lost if the territory is conquered or destroyed.</p>
+          <figure><img src="img/tuto/en/batiments.webp" alt="A planet with silos, industries, a shield and air defense" loading="lazy"></figure>
+          <table class="ht-table">
+            <tr><td><img data-ico="city" alt=""></td><td><strong>City</strong> <span class="ht-cost" data-cost="city"></span></td><td>Population cap <b data-cfg="pop.cityCapBonus" data-plus></b> and growth ×<b data-cfg="pop.cityGrowthMult"></b>.</td></tr>
+            <tr><td><img data-ico="industry" alt=""></td><td><strong>Industry</strong> <span class="ht-cost" data-cost="industry"></span></td><td><b data-cfg="econ.industryIncome" data-plus></b> $/s.</td></tr>
+            <tr><td><img data-ico="silo" alt=""></td><td><strong>Silo</strong> <span class="ht-cost" data-cost="silo"></span></td><td>One missile, reloaded in <b data-cfg="silo.reloadTime"></b> s.</td></tr>
+            <tr><td><img data-ico="shield" alt=""></td><td><strong>Shield</strong> <span class="ht-cost" data-cost="shield"></span></td><td>Blows up missiles before impact over the area it covers. When hit, it goes down for <b data-cfg="shield.downTime"></b> s.</td></tr>
+            <tr><td><img data-ico="colony" alt=""></td><td><strong>Colonization</strong> <span class="ht-cost" data-cost="colony"></span></td><td>Lets you send colonist modules to other planets.</td></tr>
+            <tr><td><img data-ico="tradeport" alt=""></td><td><strong>Trade port</strong> <span class="ht-cost" data-cost="tradeport"></span></td><td>Every <b data-cfg="trade.interval"></b> s, a cargo ship leaves for another port: <b data-cfg="trade.rewardSender" data-unit=" $"></b> for you and as much for the receiver.</td></tr>
+            <tr><td><img data-ico="military" alt=""></td><td><strong>Military base</strong> <span class="ht-cost" data-cost="military"></span></td><td>Stronger nearby attacks (<b data-cfg="military.attackBonus" data-pct data-plus></b>), better defense around it, and an artillery shot every <b data-cfg="military.fireInterval"></b> s at nearby enemies.</td></tr>
+            <tr><td><img data-ico="aa" alt=""></td><td><strong>Air defense</strong> <span class="ht-cost" data-cost="aa"></span></td><td>Shoots down enemy missiles and modules passing through its cone, above it.</td></tr>
+          </table>
+          <p>Each building of the same type on the same planet costs ×<b data-cfg="econ.costEscalation"></b> the previous one: spread out over several planets.</p>
+        </section>
+
+        <section id="en-missiles">
+          <h2>Missiles and craters</h2>
+          <p>With silos on the locked planet, click <strong>Launch missiles</strong> (key 0), aim at a point on the map and click. By default, the volley fires <strong>all ready missiles</strong>; the − and + buttons set the number. Each missile costs <b data-cfg="missiles.launchCost" data-unit=" $"></b>.</p>
+          <figure><img src="img/tuto/en/missiles.webp" alt="Aiming a missile volley" loading="lazy"><figcaption>While aiming, a small crosshair per missile shows where it will land: volleys make barrages.</figcaption></figure>
+          <ul>
+            <li>Missiles climb straight up, then fly in a curve, bent by the gravity of the sun and planets. Aim ahead of a moving target.</li>
+            <li>Each impact digs a <strong>crater</strong>: hit territories are emptied (they become neutral and can be retaken) or <strong>destroyed forever</strong> if the hole is deep. Bombed planets really shrink.</li>
+            <li>Shields and air defenses protect against missiles.</li>
+          </ul>
+          <figure><img src="img/tuto/en/crateres.webp" alt="A planet riddled with craters" loading="lazy" class="narrow"></figure>
+        </section>
+
+        <section id="en-colonisation">
+          <h2>Colonizing other planets</h2>
+          <p>With a colonization center on the locked planet, choose the share of your population to send, click <strong>Launch colonists</strong>, then aim at a point on the edge of another planet. Each launch costs <b data-cfg="colony.launchCost" data-unit=" $"></b>, plus the colonists on board (at least <b data-cfg="colony.minColonists"></b>).</p>
+          <figure><img src="img/tuto/en/colonisation.webp" alt="Aiming a colonization module at a planet" loading="lazy"><figcaption>The crosshair snaps around the target planet; the green arc shows the landing zone.</figcaption></figure>
+          <ul>
+            <li>The module tracks its target and goes around the planet if needed. Shields do not stop it, but air defenses can shoot it down.</li>
+            <li>On enemy or neutral ground, it takes the landing territory then attacks its two neighbors: a <strong>beachhead</strong>. Exploit it fast, overpopulation melts away.</li>
+            <li>On your own ground, the colonists simply reinforce the territory.</li>
+          </ul>
+        </section>
+
+        <section id="en-planetes">
+          <h2>Managing several planets</h2>
+          <figure><img src="img/tuto/en/distance.webp" alt="Zoomed-out view with remote management" loading="lazy"></figure>
+          <ul>
+            <li><strong>Remote management</strong>: when you zoom out, a ring in the players' colors surrounds each planet and its whole edge stays clickable: you can attack and build without zooming in.</li>
+            <li><strong>My planets</strong> and the <span class="kbd2">Tab</span> key: jump from one of your planets to the next.</li>
+            <li><strong>Minimap</strong>: click a planet to go there.</li>
+            <li><strong>Arrows at the screen edge</strong>: they point to enemy missiles (red) and colonists (orange) heading for your planets, and to your planets under attack off screen.</li>
+          </ul>
+        </section>
+
+        <section id="en-diplo">
+          <h2>Diplomacy</h2>
+          <p>Right-click a player in the table (or one of their territories) to <strong>propose an alliance</strong> lasting <b data-cfg="diplomacy.duration" data-min></b> minutes. Allies cannot attack each other.</p>
+          <figure><img src="img/tuto/en/diplomatie.webp" alt="Diplomacy menu open on a player" loading="lazy" class="narrow"></figure>
+          <p>You can <strong>betray</strong> an alliance (from the same menu, or by hitting an ally with a missile). The traitor is shown to everyone, and their territories' defense is divided by <b data-cfg="diplomacy.betrayDefenseDiv"></b> for <b data-cfg="diplomacy.betrayVulnerable"></b> s: the perfect moment to attack them with no penalty.</p>
+        </section>
+
+        <section id="en-touches">
+          <h2>Controls</h2>
+          <table class="ht-table keys">
+            <tr><td><span class="kbd2">Click</span> a planet</td><td>Lock it (the camera follows it); click again: release it</td></tr>
+            <tr><td><span class="kbd2">Click</span> a neighboring territory</td><td>Attack it</td></tr>
+            <tr><td><span class="kbd2">Drag</span> · <span class="kbd2">Wheel</span></td><td>Move the camera · zoom</td></tr>
+            <tr><td><span class="kbd2">1</span> to <span class="kbd2">9</span></td><td>Pick a building, then click the planet</td></tr>
+            <tr><td><span class="kbd2">Shift</span> + click</td><td>Build on the territory of your choice</td></tr>
+            <tr><td><span class="kbd2">0</span></td><td>Launch missiles</td></tr>
+            <tr><td><span class="kbd2">Tab</span> · <span class="kbd2">Shift</span>+<span class="kbd2">Tab</span></td><td>Next · previous planet</td></tr>
+            <tr><td><span class="kbd2">Right-click</span> a player</td><td>Diplomacy</td></tr>
+            <tr><td><span class="kbd2">Esc</span></td><td>Cancel the current action</td></tr>
+          </table>
+          <p class="ht-tip">To get started: launch a solo game against 3 bots from the home screen.</p>
+        </section>
+      </div>
+</article>
     </div>
   </div>
 </div>
@@ -275,69 +419,69 @@
 <div id="acct" class="overlay modal" hidden>
   <div class="panel glass acct-panel" role="dialog" aria-modal="true" aria-labelledby="acct-title">
     <div class="acct-top">
-      <div class="screen-title" id="acct-title">Votre compte</div>
-      <button class="link-btn" id="acct-close" aria-label="Fermer">Fermer</button>
+      <div class="screen-title" id="acct-title">Your account</div>
+      <button class="link-btn" id="acct-close" aria-label="Close" data-i18n="ui.close" data-i18n-aria="ui.close">Close</button>
     </div>
     <div id="acct-auth">
-    <p class="panel-text">Un compte réserve votre pseudo et conserve vos statistiques (parties jouées, victoires). Il reste facultatif pour jouer.</p>
+    <p class="panel-text" data-i18n="acc.intro">An account reserves your name and keeps your stats (games played, wins). It is optional to play.</p>
     <div class="seg" role="tablist">
-      <button class="seg-btn active" data-tab="login" role="tab" aria-selected="true">Connexion</button>
-      <button class="seg-btn" data-tab="register" role="tab" aria-selected="false">Inscription</button>
+      <button class="seg-btn active" data-tab="login" role="tab" aria-selected="true" data-i18n="acc.tabLogin">Log in</button>
+      <button class="seg-btn" data-tab="register" role="tab" aria-selected="false" data-i18n="acc.tabReg">Sign up</button>
     </div>
-    <button class="btn-google" id="btn-google" hidden>Continuer avec Google</button>
-    <div class="or" id="acct-or" hidden><span>ou par e-mail</span></div>
+    <button class="btn-google" id="btn-google" hidden data-i18n="acc.google">Continue with Google</button>
+    <div class="or" id="acct-or" hidden><span data-i18n="acc.orEmail">or by email</span></div>
     <form id="acct-form" novalidate>
       <label class="field reg-only" for="in-rpseudo" hidden>
-        <span class="field-label">PSEUDO</span>
+        <span class="field-label" data-i18n="acc.pseudo">NAME</span>
         <input id="in-rpseudo" maxlength="16" autocomplete="nickname" spellcheck="false">
       </label>
       <label class="field" for="in-email">
-        <span class="field-label">E-MAIL</span>
+        <span class="field-label" data-i18n="acc.email">EMAIL</span>
         <input id="in-email" type="email" autocomplete="email" spellcheck="false">
       </label>
       <label class="field" for="in-pass">
-        <span class="field-label">MOT DE PASSE</span>
+        <span class="field-label" data-i18n="acc.pass">PASSWORD</span>
         <input id="in-pass" type="password" autocomplete="current-password">
       </label>
       <label class="field reg-only" for="in-pass2" hidden>
-        <span class="field-label">CONFIRMER LE MOT DE PASSE</span>
+        <span class="field-label" data-i18n="acc.pass2">CONFIRM PASSWORD</span>
         <input id="in-pass2" type="password" autocomplete="new-password">
       </label>
-      <button type="button" class="link-btn login-only" id="acct-forgot">Mot de passe oublié ?</button>
+      <button type="button" class="link-btn login-only" id="acct-forgot" data-i18n="acc.forgot">Forgot password?</button>
       <div class="field-err" id="acct-err" role="alert"></div>
-      <button class="cta" type="submit" id="acct-submit">SE CONNECTER</button>
+      <button class="cta" type="submit" id="acct-submit">LOG IN</button>
     </form>
     </div>
 
     <!-- Connecté : pseudo et statistiques -->
     <div id="acct-me" hidden>
       <div class="me-id">
-        <span class="field-label">PSEUDO</span>
+        <span class="field-label" data-i18n="acc.pseudo">NAME</span>
         <div class="me-pseudo" id="me-pseudo"></div>
         <div class="me-email" id="me-email"></div>
       </div>
       <div class="me-stats">
-        <div class="me-stat"><b id="me-games">0</b><span>parties en ligne</span></div>
-        <div class="me-stat"><b id="me-wins">0</b><span>victoires</span></div>
-        <div class="me-stat"><b id="me-rate">—</b><span>taux de victoire</span></div>
+        <div class="me-stat"><b id="me-games">0</b><span data-i18n="acc.games">online games</span></div>
+        <div class="me-stat"><b id="me-wins">0</b><span data-i18n="acc.wins">wins</span></div>
+        <div class="me-stat"><b id="me-rate">—</b><span data-i18n="acc.rate">win rate</span></div>
       </div>
-      <p class="field-help">Les statistiques comptent les parties en ligne terminées.</p>
-      <div class="form-actions"><button class="btn-sec" id="acct-logout">Se déconnecter</button></div>
+      <p class="field-help" data-i18n="acc.statsNote">Stats count finished online games.</p>
+      <div class="form-actions"><button class="btn-sec" id="acct-logout" data-i18n="acc.logout">Log out</button></div>
     </div>
 
     <!-- Nouveau mot de passe (lien reçu par e-mail) -->
     <form id="acct-reset" hidden novalidate>
-      <p class="panel-text">Choisissez votre nouveau mot de passe.</p>
+      <p class="panel-text" data-i18n="acc.chooseNew">Choose your new password.</p>
       <label class="field" for="in-newpass">
-        <span class="field-label">NOUVEAU MOT DE PASSE</span>
+        <span class="field-label" data-i18n="acc.newPass">NEW PASSWORD</span>
         <input id="in-newpass" type="password" autocomplete="new-password">
       </label>
       <label class="field" for="in-newpass2">
-        <span class="field-label">CONFIRMER</span>
+        <span class="field-label" data-i18n="acc.confirm">CONFIRM</span>
         <input id="in-newpass2" type="password" autocomplete="new-password">
       </label>
       <div class="field-err" id="reset-err" role="alert"></div>
-      <button class="cta" type="submit">ENREGISTRER</button>
+      <button class="cta" type="submit" data-i18n="acc.save">SAVE</button>
     </form>
   </div>
 </div>
@@ -347,27 +491,27 @@
   <!-- Barre du joueur, en haut au centre : argent et population, puis bâtiments -->
   <div id="topbar" class="glass">
     <div class="tb-line">
-      <span class="tb-stat"><span class="tb-label">ARGENT</span><b id="stat-money">0</b><span class="tb-rate" id="stat-moneygrowth">+0/s</span></span>
+      <span class="tb-stat"><span class="tb-label" data-i18n="hud.money">MONEY</span><b id="stat-money">0</b><span class="tb-rate" id="stat-moneygrowth">+0/s</span></span>
       <span class="tb-sep" aria-hidden="true"></span>
-      <span class="tb-stat"><span class="tb-label">POPULATION</span><b id="stat-pop">0</b><span class="tb-max" id="stat-popmax">/ 0</span><span class="tb-rate" id="stat-growth">+0/s</span></span>
+      <span class="tb-stat"><span class="tb-label" data-i18n="hud.pop">POPULATION</span><b id="stat-pop">0</b><span class="tb-max" id="stat-popmax">/ 0</span><span class="tb-rate" id="stat-growth">+0/s</span></span>
     </div>
     <div class="tb-buildings" id="tb-buildings"></div>
   </div>
 
   <!-- Tableau des joueurs : couleur, population / max, argent, alliances -->
   <div id="scoreboard" class="glass">
-    <div class="sb-head"><span>JOUEURS</span><span class="sb-hint">clic droit : diplomatie</span></div>
+    <div class="sb-head"><span data-i18n="sb.players">PLAYERS</span><span class="sb-hint" data-i18n="sb.hint">right-click: diplomacy</span></div>
     <div id="sb-rows"></div>
   </div>
 
   <!-- Proposition d'alliance reçue : notification très visible -->
   <div id="allyask" class="glass" hidden>
-    <div class="aa-kicker">PROPOSITION D'ALLIANCE</div>
-    <div class="aa-text"><span class="dot" id="aa-dot"></span><b id="aa-name">—</b> vous propose une alliance de 5 minutes</div>
-    <div class="aa-sub">Pendant l'alliance, vous ne pourrez plus vous attaquer l'un l'autre.</div>
+    <div class="aa-kicker" data-i18n="ally.kicker">ALLIANCE PROPOSAL</div>
+    <div class="aa-text"><span class="dot" id="aa-dot"></span><b id="aa-name">—</b> <span data-i18n="ally.offers">offers you a 5-minute alliance</span></div>
+    <div class="aa-sub" data-i18n="ally.sub">During the alliance, you cannot attack each other.</div>
     <div class="aa-actions">
-      <button class="aa-btn aa-yes" id="aa-yes">Accepter</button>
-      <button class="aa-btn aa-no" id="aa-no">Refuser</button>
+      <button class="aa-btn aa-yes" id="aa-yes" data-i18n="ally.yes">Accept</button>
+      <button class="aa-btn aa-no" id="aa-no" data-i18n="ally.no">Decline</button>
     </div>
     <div class="aa-timer"><i id="aa-bar"></i></div>
   </div>
@@ -384,7 +528,7 @@
 
   <!-- Alerte de trahison -->
   <div id="betrayal" class="glass" hidden>
-    <div class="bt-kicker">TRAHISON</div>
+    <div class="bt-kicker" data-i18n="bt.kicker">BETRAYAL</div>
     <div class="bt-text" id="bt-text"></div>
     <div class="bt-sub" id="bt-sub"></div>
   </div>
@@ -392,7 +536,7 @@
   <!-- Volet d'information planète (survol), en haut à droite -->
   <div id="planetinfo" class="glass" hidden>
     <div class="pi-name" id="pi-name">—</div>
-    <div class="pi-row"><span>Population</span><b id="pi-pop">0</b></div>
+    <div class="pi-row"><span data-i18n="pi.pop">Population</span><b id="pi-pop">0</b></div>
     <div id="pi-players"></div>
     <div class="pi-sep"></div>
     <div class="pi-bgrid" id="pi-buildings"></div>
@@ -402,11 +546,11 @@
   <!-- Barre de construction : visible quand une planète est verrouillée -->
   <div id="buildbar" class="glass" hidden>
     <button class="bbtn" id="bb-city">
-      <span class="bbtn-name">Ville</span>
+      <span class="bbtn-name">City</span>
       <span class="bbtn-cost"></span>
     </button>
     <button class="bbtn" id="bb-industry">
-      <span class="bbtn-name">Industrie</span>
+      <span class="bbtn-name">Industry</span>
       <span class="bbtn-cost"></span>
     </button>
     <button class="bbtn" id="bb-silo">
@@ -414,27 +558,27 @@
       <span class="bbtn-cost"></span>
     </button>
     <button class="bbtn" id="bb-shield">
-      <span class="bbtn-name">Bouclier</span>
+      <span class="bbtn-name">Shield</span>
       <span class="bbtn-cost"></span>
     </button>
     <button class="bbtn" id="bb-colony">
-      <span class="bbtn-name">Colonisation</span>
+      <span class="bbtn-name">Colonization</span>
       <span class="bbtn-cost"></span>
     </button>
     <button class="bbtn" id="bb-tradeport">
-      <span class="bbtn-name">Port de commerce</span>
+      <span class="bbtn-name">Trade port</span>
       <span class="bbtn-cost"></span>
     </button>
     <button class="bbtn" id="bb-military">
-      <span class="bbtn-name">Base militaire</span>
+      <span class="bbtn-name">Military base</span>
       <span class="bbtn-cost"></span>
     </button>
     <button class="bbtn" id="bb-aa">
-      <span class="bbtn-name">DAA</span>
+      <span class="bbtn-name">Air def.</span>
       <span class="bbtn-cost"></span>
     </button>
     <button class="bbtn" id="bb-spaceport">
-      <span class="bbtn-name">Spatioport</span>
+      <span class="bbtn-name">Spaceport</span>
       <span class="bbtn-cost"></span>
     </button>
   </div>
@@ -442,19 +586,19 @@
   <!-- Panneau missiles : bas à droite, visible si la planète verrouillée a des silos -->
   <div id="missilebar" class="glass" hidden>
     <div class="ms-left" id="ms-ctl">
-      <span class="stat-label">NOMBRE DE MISSILES</span>
+      <span class="stat-label" data-i18n="ms.label">MISSILES</span>
       <div class="ms-stepper">
         <button class="mbtn" id="ms-minus">−</button>
         <span class="stat-value" id="ms-value">1</span>
         <button class="mbtn" id="ms-plus">+</button>
       </div>
-      <div class="ms-silos" id="ms-silos" aria-label="État des silos de la planète"></div>
+      <div class="ms-silos" id="ms-silos" aria-label="Silo status" data-i18n-aria="ms.silosAria"></div>
       <span class="ms-reload" id="ms-reload"></span>
       <span class="ms-cost" id="ms-cost"></span>
     </div>
-    <button id="btn-launch" class="hbtn btn-launch">LANCEMENT<br>MISSILES</button>
+    <button id="btn-launch" class="hbtn btn-launch"><span data-i18n-html="ms.launch">LAUNCH<br>MISSILES</span></button>
     <div class="ms-left" id="co-ctl" hidden>
-      <span class="stat-label">COLONS (% POP. PLANÈTE)</span>
+      <span class="stat-label" data-i18n="co.label">COLONISTS (% PLANET POP.)</span>
       <div class="ms-stepper">
         <button class="mbtn" id="co-minus">−</button>
         <span class="stat-value" id="co-value">25 %</span>
@@ -462,37 +606,38 @@
       </div>
       <span class="ms-cost" id="co-cost"></span>
     </div>
-    <button id="btn-colony" class="hbtn btn-colony" hidden>LANCEMENT<br>COLONISATION</button>
+    <button id="btn-colony" class="hbtn btn-colony" hidden data-i18n-html="co.launch">LAUNCH<br>COLONISTS</button>
     <div class="ms-left" id="fl-ctl" hidden>
-      <span class="stat-label">VAISSEAUX · <span id="fl-stock">0</span> EN STOCK</span>
+      <span class="stat-label"><span data-i18n="fl.ships">SHIPS</span> · <span id="fl-stock">0</span> <span data-i18n="fl.stock">IN STOCK</span></span>
       <div class="ms-stepper">
         <button class="mbtn" id="fl-minus">−</button>
         <span class="stat-value" id="fl-value">0</span>
         <button class="mbtn" id="fl-plus">+</button>
       </div>
-      <button class="fl-build" id="fl-build">+1 vaisseau · <span id="fl-cost">200</span> $</button>
+      <button class="fl-build" id="fl-build"><span data-i18n="fl.build">+1 ship</span> · <span id="fl-cost">200</span></button>
     </div>
-    <button id="btn-fleet" class="hbtn btn-fleet" hidden>LANCEMENT<br>FLOTTE</button>
+    <button id="btn-fleet" class="hbtn btn-fleet" hidden data-i18n-html="fl.launch">LAUNCH<br>FLEET</button>
   </div>
 </div>
 
 <!-- ===== ÉCRAN DE FIN ===== -->
 <div id="endscreen" class="overlay" hidden>
   <div class="menu-inner">
-    <div class="menu-kicker" id="end-kicker">PARTIE TERMINÉE</div>
-    <h1 class="game-title" id="end-title">VICTOIRE</h1>
+    <div class="menu-kicker" id="end-kicker">GAME OVER</div>
+    <h1 class="game-title" id="end-title">VICTORY</h1>
     <p class="menu-sub" id="end-sub"></p>
-    <button id="btn-restart" class="cta">REJOUER</button>
+    <button id="btn-restart" class="cta" data-i18n="end.again">PLAY AGAIN</button>
   </div>
 </div>
 
 <!-- Vue d'ensemble : mes planètes (sous le tableau des joueurs) et mini-carte -->
 <div id="myplanets" class="glass" hidden></div>
-<canvas id="minimap" width="180" height="180" hidden title="Mini-carte : cliquez pour vous y rendre"></canvas>
+<canvas id="minimap" width="180" height="180" hidden title="Minimap: click to go there" data-i18n-title="mm.title"></canvas>
 
 <div id="toast"></div>
 
 <script src="js/version.js"></script>
+<script src="js/i18n.js"></script>
 <script src="js/config.js"></script>
 <script src="js/world.js"></script>
 <script src="js/game.js"></script>

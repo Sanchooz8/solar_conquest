@@ -66,15 +66,15 @@ function updateMyPlanets() {
   const rows = list.map(({ planet: p, cells, pop }) => {
     const atk = planetUnderAttack(p);
     const inc = threats.filter(t => t.planet === p);
-    const tags = (atk ? '<span class="mp-tag atk" title="Territoires attaqués">COMBAT</span>' : '') +
-      (inc.length ? `<span class="mp-tag inc" title="Missiles ou modules ennemis en approche">${inc.length} EN APPROCHE</span>` : '');
+    const tags = (atk ? `<span class="mp-tag atk" title="${T('mp.atkTitle')}">${T('mp.combat')}</span>` : '') +
+      (inc.length ? `<span class="mp-tag inc" title="${T('mp.incTitle')}">${T('mp.incoming', { n: inc.length })}</span>` : '');
     return `<div class="mp-row${UI.lock === p ? ' on' : ''}" data-pid="${p.id}"><span class="mp-name"></span>` +
-      `<span class="mp-info">${cells} terr. · ${Math.floor(pop)}</span>${tags}</div>`;
+      `<span class="mp-info">${T('mp.info', { n: cells, pop: Math.floor(pop) })}</span>${tags}</div>`;
   });
-  const key = rows.join('') + list.map(m => m.planet.name).join();
+  const key = LANG + rows.join('') + list.map(m => m.planet.name).join();
   if (box.dataset.key !== key) {
     box.dataset.key = key;
-    box.innerHTML = '<div class="mp-head">MES PLANÈTES <span>Tab : suivante</span></div>' + (rows.join('') || '<div class="mp-empty">Aucune</div>');
+    box.innerHTML = `<div class="mp-head">${T('mp.head')} <span>${T('mp.tab')}</span></div>` + (rows.join('') || `<div class="mp-empty">${T('mp.none')}</div>`);
     box.querySelectorAll('.mp-row').forEach((r, i) => {
       r.querySelector('.mp-name').textContent = list[i].planet.name;
       r.addEventListener('click', () => focusPlanet(G.planets[+r.dataset.pid]));
@@ -171,7 +171,7 @@ function drawEdgeAlerts(t) {
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
   // Cadre des flèches : en retrait des bords, sous le bandeau du haut et
   // au-dessus de la barre de construction
-  const L = 40, R = W - 40, T = 96, B = H - 90;
+  const L = 40, R = W - 40, TOP = 96, B = H - 90;
   const cx = W / 2, cy = H / 2;
   const toScreen = (x, y) => ({ x: cx + (x - UI.cam.x) * UI.cam.zoom, y: cy + (y - UI.cam.y) * UI.cam.zoom });
   const onScreen = s => s.x >= 0 && s.x <= W && s.y >= 0 && s.y <= H;
@@ -179,7 +179,7 @@ function drawEdgeAlerts(t) {
   const edge = s => {
     const dx = s.x - cx, dy = s.y - cy;
     const kx = dx > 0 ? (R - cx) / dx : dx < 0 ? (L - cx) / dx : Infinity;
-    const ky = dy > 0 ? (B - cy) / dy : dy < 0 ? (T - cy) / dy : Infinity;
+    const ky = dy > 0 ? (B - cy) / dy : dy < 0 ? (TOP - cy) / dy : Infinity;
     const k = Math.min(kx, ky);
     return { x: cx + dx * k, y: cy + dy * k, a: Math.atan2(dy, dx) };
   };
@@ -197,7 +197,7 @@ function drawEdgeAlerts(t) {
   for (const th of incomingThreats()) {
     const s = toScreen(th.obj.x, th.obj.y);
     if (onScreen(s)) continue;
-    arrow(edge(s), th.kind === 'missile' ? '#ff3b30' : '#ffb347', th.kind === 'missile' ? 'MISSILE' : 'COLONS');
+    arrow(edge(s), th.kind === 'missile' ? '#ff3b30' : '#ffb347', th.kind === 'missile' ? T('edge.missile') : T('edge.colonists'));
   }
   for (const { planet: p } of myPlanets()) {
     if (!planetUnderAttack(p)) continue;

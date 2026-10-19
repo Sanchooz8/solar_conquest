@@ -32,12 +32,12 @@ function initMenu() {
 }
 
 // --- Prompt & toast ----------------------------------------------
-function showPrompt(html) { el('prompt').innerHTML = html; el('prompt').hidden = false; }
+function showPrompt(html) { el('prompt').innerHTML = txt(html); el('prompt').hidden = false; }
 function hidePrompt() { el('prompt').hidden = true; }
 
 function showToast(msg, ok) {
   const t = el('toast');
-  t.textContent = msg;
+  t.textContent = txt(msg);
   t.classList.toggle('ok', !!ok);
   t.classList.add('show');
   clearTimeout(toastTimer);
@@ -50,26 +50,26 @@ function showEndScreen(winner) {
   const mins = Math.floor(G.time / 60), secs = Math.floor(G.time % 60);
   el('endscreen').hidden = false;
   if (winner && winner.id === G.me) {
-    el('end-kicker').textContent = 'PARTIE TERMINÉE';
-    el('end-title').textContent = 'VICTOIRE';
-    el('end-sub').textContent = `Vous contrôlez ${mine} territoires sur ${G.cellsTotal}. Durée : ${mins} min ${secs} s.`;
+    el('end-kicker').textContent = T('end.finished');
+    el('end-title').textContent = T('end.victory');
+    el('end-sub').textContent = T('end.victorySub', { mine, total: G.cellsTotal, m: mins, s: secs });
   } else if (G.players[G.me] && G.players[G.me].alive && G.phase === 'over') {
-    el('end-kicker').textContent = 'PARTIE TERMINÉE';
-    el('end-title').textContent = 'DÉFAITE';
-    el('end-sub').textContent = winner ? `${winner.name} remporte la partie. Durée : ${mins} min ${secs} s.` : `Durée : ${mins} min ${secs} s.`;
+    el('end-kicker').textContent = T('end.finished');
+    el('end-title').textContent = T('end.defeat');
+    el('end-sub').textContent = winner ? T('end.winnerSub', { name: winner.name, m: mins, s: secs }) : T('end.durationSub', { m: mins, s: secs });
   } else {
     const humansLeft = G.players.some(p => !p.isBot && p.alive && p.id !== G.me);
-    el('end-kicker').textContent = 'VOTRE COLONIE A ÉTÉ ÉLIMINÉE';
-    el('end-title').textContent = 'DÉFAITE';
-    el('end-sub').textContent = `Vous avez survécu ${mins} min ${secs} s. ` +
-      (winner ? `${winner.name} remporte la partie.` : humansLeft ? 'La partie continue pour les autres joueurs.' : 'Le système appartient aux IA.');
+    el('end-kicker').textContent = T('end.eliminated');
+    el('end-title').textContent = T('end.defeat');
+    el('end-sub').textContent = T('end.survived', { m: mins, s: secs }) + ' ' +
+      (winner ? T('end.wins', { name: winner.name }) : humansLeft ? T('end.continues') : T('end.aiOwns'));
   }
 }
 
 // --- HUD -------------------------------------------------------------
 function updateHUD() {
   const me = G.players[G.me];
-  el('stat-money').textContent = Math.floor(me.money) + ' $';
+  el('stat-money').textContent = money(Math.floor(me.money));
 
   // Population : actuelle / plafond total + vitesse de croissance réelle (courbe logistique)
   // Argent : revenu proportionnel à la population réelle + industries
@@ -125,7 +125,7 @@ function updatePlanetInfo() {
         `<span>${pl.name}</span><b>${Math.floor(ppop)}<span class="pi-max"> / ${perCap.get(id)}</span></b></div>`;
     }).join('');
   el('pi-players').innerHTML = rows ||
-    '<div class="pi-player"><span>Aucune colonie</span></div>';
+    `<div class="pi-player"><span>${T('pi.noColony')}</span></div>`;
 
   fillBuildingIcons(el('pi-buildings'), bc);
 }
@@ -137,8 +137,8 @@ function fillBuildingIcons(box, counts) {
   if (box.dataset.key === key) return; // inchangé : pas de reconstruction
   box.dataset.key = key;
   const parts = BUILDING_ORDER.filter(t => counts[t]).map(t =>
-    `<span class="bico" title="${BUILDING_LABELS[t]}"><img src="${BUILDING_ICONS[t]}" alt="${BUILDING_LABELS[t]}">${counts[t]}</span>`);
-  box.innerHTML = parts.length ? parts.join('') : '<span class="tb-empty">Aucun bâtiment</span>';
+    `<span class="bico" title="${bLabel(t)}"><img src="${BUILDING_ICONS[t]}" alt="${bLabel(t)}">${counts[t]}</span>`);
+  box.innerHTML = parts.length ? parts.join('') : `<span class="tb-empty">${T('hud.noBuilding')}</span>`;
 }
 
 // Raccourcis 1 à 0 : boutons du bas, de gauche à droite
@@ -161,20 +161,33 @@ function layoutBottomBars() {
 }
 
 // --- Barre de construction (bas d'écran) -------------------------------
-const BUILDING_LABELS = { city: 'Ville', industry: 'Industrie', silo: 'Silo', shield: 'Bouclier', colony: 'Colonisation', tradeport: 'Port de commerce', military: 'Base militaire', aa: 'Défense anti-aérienne', spaceport: 'Spatioport' };
+// Nom d'un bâtiment dans la langue du joueur
+function bLabel(type) { return T('b.' + type); }
+const BB_SHORT = { aa: 'bshort.aa', tradeport: 'bshort.tradeport', military: 'bshort.military' }; // noms courts des boutons
+
+// Libellés de la barre de construction (rappelé au changement de langue)
+function labelBuildbar() {
+  BUILDING_ORDER.forEach((type, i) => {
+    const btn = el('bb-' + type);
+    btn.title = T('bb.title', { b: bLabel(type), k: (i + 1) % 10 });
+    const nm = btn.querySelector('.bbtn-name');
+    if (nm) nm.textContent = BB_SHORT[type] ? T(BB_SHORT[type]) : bLabel(type);
+  });
+  el('btn-launch').title = T('bb.launchTitle');
+}
+onLangChange(labelBuildbar);
 
 function initBuildbar() {
   BUILDING_ORDER.forEach((type, i) => {
     const btn = el('bb-' + type);
     btn.insertAdjacentHTML('afterbegin', `<span class="kbd">${(i + 1) % 10}</span><img class="bbtn-ico" src="${BUILDING_ICONS[type]}" alt="">`);
-    btn.title = `${BUILDING_LABELS[type]} — touche ${(i + 1) % 10}`;
   });
   // Vaisseaux en veille : le bouton du spatioport n'apparaît pas
   el('bb-spaceport').hidden = !CONFIG.features.fleets;
   el('btn-launch').insertAdjacentHTML('afterbegin', '<span class="kbd">0</span>');
-  el('btn-launch').title = 'Lancement de missiles — touche 0';
+  labelBuildbar();
   for (const type of BUILDING_ORDER) {
-    el('bb-' + type).querySelector('.bbtn-cost').textContent = buildingBaseCost(type) + ' $';
+    el('bb-' + type).querySelector('.bbtn-cost').textContent = money(buildingBaseCost(type));
     el('bb-' + type).addEventListener('click', () => {
       UI.placing = UI.placing === type ? null : type; // re-clic = annuler
       UI.aiming = false;
@@ -182,7 +195,7 @@ function initBuildbar() {
       UI.aimingFleet = null;
       updateBuildbar();
       updateMissilebar();
-      if (UI.placing) showToast('Cliquez sur la planète : construction à l\'emplacement proposé (Maj + clic : choisir le territoire) — Échap pour annuler', true);
+      if (UI.placing) showToast(T('toast.placing'), true);
     });
   }
 }
@@ -199,7 +212,7 @@ function updateBuildbar() {
   for (const type of ['city', 'industry', 'silo', 'shield', 'colony', 'tradeport', 'military', 'aa', 'spaceport']) {
     const b = el('bb-' + type);
     const cost = buildingCost(UI.lock, type);
-    b.querySelector('.bbtn-cost').textContent = cost + ' $';
+    b.querySelector('.bbtn-cost').textContent = money(cost);
     b.disabled = me.money < cost;
     b.classList.toggle('active', UI.placing === type);
   }
@@ -228,7 +241,7 @@ function initMissilebar() {
     canvas.style.cursor = UI.aiming ? 'none' : 'default';
     updateBuildbar();
     updateMissilebar();
-    if (UI.aiming) showToast('Visez un point de la carte et cliquez pour tirer — Échap pour annuler', true);
+    if (UI.aiming) showToast(T('toast.aimMissile'), true);
   });
   el('co-minus').addEventListener('click', () => {
     UI.colonyShare = Math.max(0.05, UI.colonyShare - 0.05);
@@ -246,7 +259,7 @@ function initMissilebar() {
     canvas.style.cursor = UI.aimingColony ? 'none' : 'default';
     updateBuildbar();
     updateMissilebar();
-    if (UI.aimingColony) showToast("Approchez le viseur d'une planète : il s'accroche à son pourtour. Cliquez sur le point d'atterrissage — Échap pour annuler", true);
+    if (UI.aimingColony) showToast(T('toast.aimColony'), true);
   });
   // Vaisseaux
   el('fl-minus').addEventListener('click', () => {
@@ -264,7 +277,7 @@ function initMissilebar() {
   el('fl-build').addEventListener('click', () => {
     if (!UI.lock) return;
     issue({ t: 'ship', p: UI.lock.id }, r => {
-      if (!r.ok) showToast(r.msg); else showToast(`Vaisseau construit (${r.cost} $)`, true);
+      if (!r.ok) showToast(r.msg); else showToast(T('toast.shipBuilt', { n: r.cost }), true);
       updateMissilebar();
     });
   });
@@ -276,7 +289,7 @@ function initMissilebar() {
     canvas.style.cursor = on ? 'none' : 'default';
     updateBuildbar();
     updateMissilebar();
-    if (on) showToast("Visez une flotte ennemie, ou le pourtour d'une planète (le viseur s'y accroche) — Échap pour annuler", true);
+    if (on) showToast(T('toast.aimFleet'), true);
   });
 }
 
@@ -315,11 +328,11 @@ function updateMissilebar() {
     if (UI.fleetCount !== null && UI.fleetCount >= stock) UI.fleetCount = null;
     const n = UI.fleetCount ?? stock;
     el('fl-stock').textContent = stock;
-    el('fl-value').textContent = UI.fleetCount === null ? (stock ? stock + ' (tous)' : '0') : n;
+    el('fl-value').textContent = UI.fleetCount === null ? (stock ? stock + ' ' + T('fl.all') : '0') : n;
     el('fl-minus').disabled = n <= 1;
     el('fl-plus').disabled = UI.fleetCount === null;
     const cost = shipCost(G.me);
-    el('fl-cost').textContent = cost;
+    el('fl-cost').textContent = money(cost);
     el('fl-build').disabled = G.players[G.me].money < cost;
     el('btn-fleet').disabled = stock === 0;
     el('btn-fleet').classList.toggle('active', !!(UI.aimingFleet && UI.aimingFleet.mode === 'launch'));
@@ -341,18 +354,18 @@ function updateMissilebar() {
     el('ms-minus').disabled = n <= 1;
     el('ms-plus').disabled = UI.missileCount === null;
     const unit = CONFIG.missiles.launchCost;
-    el('ms-cost').textContent = max ? `${unit} $ / missile · salve ${unit * n} $` : `${unit} $ / missile`;
+    el('ms-cost').textContent = max ? T('ms.costVolley', { u: unit, t: unit * n }) : T('ms.cost', { u: unit });
     const btn = el('btn-launch');
     btn.disabled = max === 0;
     btn.classList.toggle('active', UI.aiming);
     updateSiloGauges(loadedSilos(G.me, UI.lock).length);
   }
   if (hasColony) {
-    el('co-value').textContent = Math.round(UI.colonyShare * 100) + ' %';
+    el('co-value').textContent = Math.round(UI.colonyShare * 100) + (LANG === 'fr' ? ' %' : '%');
     el('co-minus').disabled = UI.colonyShare <= 0.05;
     el('co-plus').disabled = UI.colonyShare >= 0.90;
     const btn = el('btn-colony');
-    el('co-cost').textContent = CONFIG.colony.launchCost + ' $ / envoi';
+    el('co-cost').textContent = T('co.cost', { u: CONFIG.colony.launchCost });
     btn.disabled = colonyColonists() < CONFIG.colony.minColonists || G.players[G.me].money < CONFIG.colony.launchCost;
     btn.classList.toggle('active', UI.aimingColony);
   }
@@ -381,8 +394,8 @@ function updateSiloGauges(ready) {
     pip.classList.toggle('ready', loaded);
     pip.firstChild.style.width = (k * 100).toFixed(1) + '%';
   });
-  el('ms-reload').textContent = `${ready}/${silos.length} prêt${ready > 1 ? 's' : ''}` +
-    (next < Infinity ? ` · prochain ${Math.ceil(next)} s` : '');
+  el('ms-reload').textContent = T(ready > 1 ? 'ms.readyN' : 'ms.ready1', { r: ready, n: silos.length }) +
+    (next < Infinity ? T('ms.next', { s: Math.ceil(next) }) : '');
 }
 
 // --- Verrouillage de planète & caméra -------------------------------
@@ -395,7 +408,7 @@ function lockPlanet(p) {
   if (G.phase === 'placement') {
     // Premier clic (fondation de la colonie) : vrai zoom de travail complet
     UI.targetZoom = fullZoom;
-    showToast(p.name + ' verrouillée — cliquez un territoire pour fonder', true);
+    showToast(T('toast.lockedFound', { planet: p.name }), true);
   } else if (UI.cam.zoom >= fullZoom) {
     // Déjà très proche : on recentre sans toucher au zoom
     UI.targetZoom = UI.cam.zoom;
@@ -573,17 +586,17 @@ function handleClick(sx, sy) {
     UI.aimingFleet = null;
     canvas.style.cursor = 'default';
     updateMissilebar();
-    if (!target) { showToast('La cible doit être une planète ou une flotte ennemie — ordre annulé'); return; }
+    if (!target) { showToast(T('toast.fleetBadTarget')); return; }
     if (mode.mode === 'retarget') {
       if (!fleetAlive(mode.fleet)) return;
       issue({ t: 'retarget', fleet: mode.fleet, target });
-      showToast(target.kind === 'fleet' ? 'Flotte : interception de la flotte ennemie' : `Flotte en route vers ${target.planet.name}`, true);
+      showToast(target.kind === 'fleet' ? T('toast.fleetIntercept') : T('toast.fleetTo', { planet: target.planet.name }), true);
       return;
     }
     const stock = storedShips(G.me, UI.lock);
     issue({ t: 'fleet', p: UI.lock.id, n: UI.fleetCount ?? stock, target }, r => {
       if (!r.ok) showToast(r.msg);
-      else showToast(`Flotte de ${r.launched} vaisseau${r.launched > 1 ? 'x' : ''} lancée !`, true);
+      else showToast(T(r.launched > 1 ? 'toast.fleetLaunchedN' : 'toast.fleetLaunched1', { n: r.launched }), true);
     });
     UI.fleetCount = null;
     return;
@@ -597,7 +610,7 @@ function handleClick(sx, sy) {
       UI.aimingFleet = { mode: 'retarget', fleet: mine };
       canvas.style.cursor = 'none';
       updateBuildbar(); updateMissilebar();
-      showToast(`Flotte (${mine.ships.length}) sélectionnée : visez une planète ou une flotte ennemie — Échap pour annuler`, true);
+      showToast(T('toast.fleetSelected', { n: mine.ships.length }), true);
       return;
     }
   }
@@ -612,10 +625,10 @@ function handleClick(sx, sy) {
     UI.aimingFleet = null;
     canvas.style.cursor = 'default';
     updateMissilebar();
-    if (!sn) { showToast("Approchez le viseur d'une planète pour choisir le point d'atterrissage — lancement annulé"); return; }
+    if (!sn) { showToast(T('toast.colonyNoSnap')); return; }
     issue({ t: 'colony', p: UI.lock.id, share: UI.colonyShare, tp: sn.planet.id, ang: sn.ang }, r => {
       if (!r.ok) showToast(r.msg);
-      else showToast(`Module de colonisation lancé (${r.colonists} colons) !`, true);
+      else showToast(T('toast.moduleLaunched', { n: r.colonists }), true);
     });
     return;
   }
@@ -624,7 +637,7 @@ function handleClick(sx, sy) {
   if (UI.aiming) {
     issue({ t: 'missiles', p: UI.lock.id, n: missileCountNow(), x: w.x, y: w.y }, r => {
       if (!r.ok) showToast(r.msg);
-      else showToast(r.launched > 1 ? `${r.launched} missiles lancés !` : 'Missile lancé !', true);
+      else showToast(r.launched > 1 ? T('toast.missilesN', { n: r.launched }) : T('toast.missile1'), true);
     });
     UI.aiming = false;
     canvas.style.cursor = 'default';
@@ -661,8 +674,8 @@ function handleClick(sx, sy) {
         if (!r.ok) { if (r.msg) showToast(r.msg); return; }
         if (G.phase === 'placement') {
           showPrompt(Session.isNet() && G.players.some(p => !p.isBot && !p.colonyPlaced && p.id !== G.me)
-            ? 'Colonie fondée. <strong>En attente des autres joueurs…</strong>'
-            : 'Colonie fondée. <strong>Les IA fondent leurs colonies…</strong>');
+            ? T('prompt.waitPlayers')
+            : T('prompt.botsFounding'));
         }
       });
     }
@@ -676,10 +689,10 @@ function handleClick(sx, sy) {
   if (UI.placing) {
     const type = UI.placing;
     const target = UI.shift ? cell : suggestBuildCell(G.me, planet, type);
-    if (!target) { showToast(UI.shift ? 'Visez un de vos territoires libres' : 'Aucun territoire libre pour ce bâtiment sur cette planète'); return; }
+    if (!target) { showToast(UI.shift ? T('toast.aimFreeCell') : T('toast.noFreeCell')); return; }
     issue({ t: 'build', p: planet.id, s: target.sector, b: type }, r => {
       if (!r.ok) { showToast(r.msg); return; }
-      showToast(BUILDING_LABELS[type] + ' construit', true);
+      showToast(T('toast.built', { b: bLabel(type) }), true);
       if (UI.placing === type) UI.placing = null;
       updateBuildbar();
     });
@@ -703,7 +716,7 @@ function handleClick(sx, sy) {
   }
   if (!frontier.length) {
     const ownsHere = planetCells(planet).some(c => c.owner === G.me);
-    if (ownsHere) showToast('Hors de portée — ce camp n\'a aucun territoire contigu aux vôtres');
+    if (ownsHere) showToast(T('toast.outOfReach'));
     return;
   }
   let target = frontier[0], bestD = Infinity;
@@ -715,10 +728,10 @@ function handleClick(sx, sy) {
 
   // Une seule mécanique : l'attaque (neutre comme ennemi) — coût en
   // argent + part de ma population sur la planète
-  if (target.contest && target.contest.attacker !== G.me) { showToast('Territoire déjà attaqué par un tiers'); return; }
+  if (target.contest && target.contest.attacker !== G.me) { showToast(T('err.thirdParty')); return; }
   issue({ t: 'attack', p: planet.id, s: target.sector }, r => {
     if (!r.ok) showToast(r.msg);
-    else showToast(r.clash ? 'Choc frontal — les forces s\'annulent !' : 'Attaque lancée — population engagée', true);
+    else showToast(r.clash ? T('toast.clash') : T('toast.attack'), true);
   });
 }
 
@@ -786,14 +799,14 @@ function updateScoreboard() {
     const al = i !== G.me ? allianceOf(G.me, i) : null;
     const wait = i !== G.me && pendingRequest(G.me, i);
     let tag = '';
-    if (al) tag = `<span class="tag ally">ALLIÉ ${fmtTime(al.until - G.time)}</span>`;
-    else if (wait) tag = '<span class="tag wait">proposé…</span>';
+    if (al) tag = `<span class="tag ally">${T('sb.ally')} ${fmtTime(al.until - G.time)}</span>`;
+    else if (wait) tag = `<span class="tag wait">${T('sb.proposed')}</span>`;
     // Traître : visible de tous les joueurs, avec le temps restant
-    if (isTraitor(i)) tag += `<span class="tag vuln">TRAÎTRE ${fmtTime(p.traitorUntil - G.time)}</span>`;
-    const you = i === G.me && p.name !== 'Vous' ? ' <span class="pi-max">(vous)</span>' : '';
+    if (isTraitor(i)) tag += `<span class="tag vuln">${T('sb.traitor')} ${fmtTime(p.traitorUntil - G.time)}</span>`;
+    const you = i === G.me ? ` <span class="pi-max">${T('sb.you')}</span>` : '';
     r.children[1].innerHTML = `${p.name}${you}${tag}`;
     r.children[2].innerHTML = `${Math.floor(stats[i].pop)}<span class="pi-max"> / ${stats[i].cap}</span>`;
-    r.children[3].textContent = Math.floor(p.money) + ' $';
+    r.children[3].textContent = money(Math.floor(p.money));
 
   });
 }
@@ -810,12 +823,12 @@ function updateAllyTip() {
     .map(al => ({ id: al.a === _tipPid ? al.b : al.a, left: al.until - G.time }))
     .sort((a, b) => a.left - b.left);
   let html = `<div class="tip-head"><span class="dot" style="background:${p.color}"></span>${p.name}</div>`;
-  if (p.isBot && p.profile) html += `<div class="tip-none">Bot · dominante ${BOT_STYLE_LABELS[p.profile.style]} · niveau ${skillLabel(p.profile.skill)}</div>`;
-  if (isTraitor(_tipPid)) html += `<div class="tip-traitor">Traître encore ${fmtTime(p.traitorUntil - G.time)} : le trahir est sans pénalité</div>`;
-  html += '<div class="tip-label">ALLIANCES</div>';
+  if (p.isBot && p.profile) html += `<div class="tip-none">${T('tip.bot', { style: T(BOT_STYLE_LABELS[p.profile.style]), level: skillLabel(p.profile.skill) })}</div>`;
+  if (isTraitor(_tipPid)) html += `<div class="tip-traitor">${T('tip.traitor', { t: fmtTime(p.traitorUntil - G.time) })}</div>`;
+  html += `<div class="tip-label">${T('tip.alliances')}</div>`;
   html += allies.length
     ? allies.map(a => `<div class="tip-row"><span class="dot" style="background:${G.players[a.id].color}"></span>${G.players[a.id].name}<b>${fmtTime(a.left)}</b></div>`).join('')
-    : '<div class="tip-none">Aucune alliance en cours</div>';
+    : `<div class="tip-none">${T('tip.noAlliance')}</div>`;
   tip.innerHTML = html;
   tip.hidden = false;
   const rb = _tipRow.getBoundingClientRect(), sb = el('scoreboard').getBoundingClientRect();
@@ -829,7 +842,7 @@ function askAllianceWith(pid) {
   if (G.phase !== 'playing' || pid === G.me || !G.players[pid]) return;
   issue({ t: 'ally', to: pid }, r => {
     if (!r.ok) showToast(r.msg);
-    else if (!r.accepted) showToast(`Alliance proposée à ${G.players[pid].name}…`, true);
+    else if (!r.accepted) showToast(T('toast.allyProposed', { name: G.players[pid].name }), true);
   });
 }
 
@@ -875,18 +888,18 @@ function refreshPlayerMenu() {
   btn.disabled = false;
   btn.classList.remove('betray');
   if (areAllied(G.me, pid)) {
-    btn.textContent = "Trahir l'alliance";
+    btn.textContent = T('cm.betray');
     btn.classList.add('betray');
     note.textContent = isTraitor(pid)
-      ? `${G.players[pid].name} est un traître : le trahir est sans pénalité.`
-      : `Votre défense sera divisée par ${CONFIG.diplomacy.betrayDefenseDiv} pendant ${CONFIG.diplomacy.betrayVulnerable} s.`;
+      ? T('cm.traitorFree', { name: G.players[pid].name })
+      : T('cm.betrayCost', { d: CONFIG.diplomacy.betrayDefenseDiv, s: CONFIG.diplomacy.betrayVulnerable });
   } else if (pendingRequest(G.me, pid)) {
-    btn.textContent = 'Proposition envoyée…';
+    btn.textContent = T('cm.sent');
     btn.disabled = true;
     note.textContent = '';
   } else {
-    btn.textContent = 'Proposer une alliance (5 min)';
-    note.textContent = isTraitor(pid) ? `Attention : ${G.players[pid].name} a trahi récemment.` : '';
+    btn.textContent = T('cm.propose', { m: Math.round(CONFIG.diplomacy.duration / 60) });
+    note.textContent = isTraitor(pid) ? T('cm.warnTraitor', { name: G.players[pid].name }) : '';
   }
 }
 
@@ -935,25 +948,25 @@ function initDiplomacyUI() {
 // Événements diplomatiques publiés par la simulation
 function onDiplomacyEvent(type, d) {
   const name = id => G.players[id] ? G.players[id].name : '?';
-  if (type === 'refused' && d.from === G.me) showToast(`${name(d.to)} refuse l'alliance`);
+  if (type === 'refused' && d.from === G.me) showToast(T('dip.refused', { name: name(d.to) }));
   else if (type === 'formed') {
-    if (d.a === G.me || d.b === G.me) showToast(`Alliance conclue avec ${name(d.a === G.me ? d.b : d.a)} pour 5 minutes`, true);
-    else showToast(`${name(d.a)} et ${name(d.b)} ont conclu une alliance`);
+    if (d.a === G.me || d.b === G.me) showToast(T('dip.formed', { name: name(d.a === G.me ? d.b : d.a), m: Math.round(CONFIG.diplomacy.duration / 60) }), true);
+    else showToast(T('dip.formedOthers', { a: name(d.a), b: name(d.b) }));
   } else if (type === 'betrayed') {
     const D = CONFIG.diplomacy;
-    const how = d.how === 'missile' ? ' (missile sur un territoire allié)' : '';
+    const how = d.how === 'missile' ? T('dip.howMissile') : '';
     const t = G.players[d.traitor], v = G.players[d.victim];
     const tag = pl => `<b style="color:${pl.color}">${pl.name}</b>`;
     if (d.traitor === G.me) {
-      showBetrayalAlert(`Vous avez trahi ${tag(v)}${how}`,
-        d.free ? `${v.name} était un traître : aucune pénalité.` : `Votre défense est divisée par ${D.betrayDefenseDiv} pendant ${D.betrayVulnerable} s.`);
+      showBetrayalAlert(T('dip.youBetrayed', { name: tag(v), how }),
+        d.free ? T('dip.youBetrayedFree', { name: v.name }) : T('dip.youBetrayedCost', { d: D.betrayDefenseDiv, s: D.betrayVulnerable }));
     } else if (d.victim === G.me) {
-      showBetrayalAlert(`${tag(t)} vous a trahi${how} !`,
-        d.free ? 'Vous étiez marqué comme traître : il ne subit aucune pénalité.' : `Sa défense est divisée par ${D.betrayDefenseDiv} pendant ${D.betrayVulnerable} s : c'est le moment de riposter.`);
+      showBetrayalAlert(T('dip.betrayedYou', { name: tag(t), how }),
+        d.free ? T('dip.betrayedYouFree') : T('dip.betrayedYouCost', { d: D.betrayDefenseDiv, s: D.betrayVulnerable }));
     } else {
-      showToast(`${t.name} a trahi ${v.name}`);
+      showToast(T('dip.betrayedOthers', { a: t.name, b: v.name }));
     }
   } else if (type === 'ended' && (d.a === G.me || d.b === G.me)) {
-    showToast(`Fin de l'alliance avec ${name(d.a === G.me ? d.b : d.a)}`);
+    showToast(T('dip.ended', { name: name(d.a === G.me ? d.b : d.a) }));
   }
 }

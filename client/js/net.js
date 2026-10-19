@@ -50,13 +50,13 @@ const Net = {
   // Rejoindre une partie privée avec son code : d'abord un vrai salon
   // ouvert par un autre joueur, sinon un salon simulé
   async joinByCode(code, pseudo) {
-    if (!/^[A-Z0-9]{4,6}$/.test(code)) return { ok: false, msg: 'Le code contient 4 à 6 lettres ou chiffres.' };
+    if (!/^[A-Z0-9]{4,6}$/.test(code)) return { ok: false, msg: T('lob.codeFormat') };
     if (this.online()) return this.onlineJoin({ k: 'join', code }, pseudo);
     const real = await RealRoom.join(code, pseudo);
     if (real.ok || real.msg) return real;
     if (!this.online()) {
       const g = Sim.games.find(x => x.code === code);
-      if (!g) return { ok: false, msg: `Aucune partie ne correspond au code ${code}.` };
+      if (!g) return { ok: false, msg: T('lob.noCode', { code }) };
       return Sim.join(g, pseudo);
     }
   },
@@ -66,7 +66,7 @@ const Net = {
     if (this.online()) return this.onlineJoin({ k: 'joinId', id: gameId }, pseudo);
     if (!this.online()) {
       const g = Sim.games.find(x => x.id === gameId);
-      if (!g) return { ok: false, msg: "Cette partie n'existe plus." };
+      if (!g) return { ok: false, msg: T('lob.gone') };
       return Sim.join(g, pseudo);
     }
   },
@@ -107,7 +107,7 @@ const Net = {
   // qui portent leurs pseudos, les places libres sont complétées si demandé.
   async startRoom() {
     const r = this.room;
-    if (!r) return { ok: false, msg: 'Aucun salon' };
+    if (!r) return { ok: false, msg: T('lob.noRoom') };
     if (this.online()) {
       // Le serveur lance la partie et l'annonce à tous (message « start »)
       const m = await Online.request({ k: 'start' }, ['start', 'error']);
@@ -115,7 +115,7 @@ const Net = {
     }
     // Salon réel avec d'autres joueurs humains : partie en réseau
     if (r.byPlayer && r.players.some(p => p.peer)) {
-      if (!r.fillBots && r.players.length < 2) return { ok: false, msg: 'Il faut au moins un adversaire.' };
+      if (!r.fillBots && r.players.length < 2) return { ok: false, msg: T('lob.needOpp') };
       r.status = 'playing'; r.playingUntil = Date.now() + 60000;
       this.room = null;
       return { ok: true, network: true, room: r };
@@ -123,7 +123,7 @@ const Net = {
     RealRoom.leave();
     const others = r.players.filter(p => !p.me).map(p => p.pseudo);
     const fill = r.fillBots ? Math.max(0, r.maxPlayers - 1 - others.length) : 0;
-    if (others.length + fill < 1) return { ok: false, msg: 'Il faut au moins un adversaire : attendez un joueur ou activez les bots.' };
+    if (others.length + fill < 1) return { ok: false, msg: T('srv.needOpponent') };
     r.status = 'playing'; r.playingUntil = Date.now() + 60000;
     this.room = null;
     return { ok: true, local: true, planets: r.planets, opponents: others, bots: others.length + fill };
@@ -132,15 +132,15 @@ const Net = {
   // --- Comptes ---------------------------------------------------------
   // Comptes (Supabase, cf. js/account.js)
   async login(email, password) {
-    if (!Account.enabled()) return { ok: false, msg: 'Les comptes arrivent bientôt : pour l\'instant, un pseudo suffit pour jouer.' };
+    if (!Account.enabled()) return { ok: false, msg: T('acc.soon') };
     return Account.login(email, password);
   },
   async register(pseudo, email, password) {
-    if (!Account.enabled()) return { ok: false, msg: 'Les comptes arrivent bientôt : pour l\'instant, un pseudo suffit pour jouer.' };
+    if (!Account.enabled()) return { ok: false, msg: T('acc.soon') };
     return Account.register(pseudo, email, password);
   },
   async googleSignIn() {
-    return { ok: false, msg: 'La connexion Google arrive bientôt.' };
+    return { ok: false, msg: T('acc.googleSoon') };
   },
   async logout() { this.account = null; return { ok: true }; },
 };
@@ -153,9 +153,14 @@ const Net = {
 const SIM_NAMES = ['Orion', 'Lyra', 'Vega', 'NovaX', 'Kestrel', 'Zephyr', 'Astra_7', 'Mira', 'Draco', 'Helios',
   'Nebulon', 'Quasar', 'Tycho', 'Sirius', 'Calypso', 'Rigel', 'Andromeda', 'Polaris', 'Cosmo42', 'Ixion',
   'Kaïa', 'Lunaire', 'Stellar_Fox', 'Titan', 'Nyx', 'Pulsar', 'Altaïr', 'Comète', 'Gaïa', 'Hyperion'];
-const SIM_TITLES = ['Conquête du dimanche', 'Débutants bienvenus', 'Blitz rapide', 'Guerre des anneaux',
-  'Pas de trahison svp', 'Partie détente', 'Cratères à volonté', 'Alliance ou rien', 'Système de Kepler',
-  'Revanche !', 'Ceinture de feu', '1v1v1v1', 'Grands espaces', 'Commerce et missiles'];
+const SIM_TITLES = {
+  fr: ['Conquête du dimanche', 'Débutants bienvenus', 'Blitz rapide', 'Guerre des anneaux',
+    'Pas de trahison svp', 'Partie détente', 'Cratères à volonté', 'Alliance ou rien', 'Système de Kepler',
+    'Revanche !', 'Ceinture de feu', '1v1v1v1', 'Grands espaces', 'Commerce et missiles'],
+  en: ['Sunday conquest', 'Beginners welcome', 'Quick blitz', 'Ring wars',
+    'No betrayal pls', 'Chill game', 'Craters galore', 'Alliance or nothing', 'Kepler system',
+    'Rematch!', 'Belt of fire', '1v1v1v1', 'Wide open space', 'Trade and missiles'],
+};
 
 const Sim = {
   games: [],
@@ -176,7 +181,7 @@ const Sim = {
     const taken = this.busyNames();
     for (const p of g.players) taken.add(p.pseudo);
     const pool = SIM_NAMES.filter(n => !taken.has(n));
-    return pool.length ? this.pick(pool) : 'Pilote' + Math.floor(Math.random() * 900 + 100);
+    return pool.length ? this.pick(pool) : 'Pilot' + Math.floor(Math.random() * 900 + 100);
   },
 
   newGame(o) {
@@ -196,7 +201,7 @@ const Sim = {
   spawn() {
     const host = this.freeName({ players: [] }); // un joueur ne gère qu'une partie à la fois
     const g = this.newGame({
-      name: Math.random() < 0.4 ? `Partie de ${host}` : this.pick(SIM_TITLES),
+      name: Math.random() < 0.4 ? T('lob.gameOf', { name: host }) : this.pick(SIM_TITLES[LANG] || SIM_TITLES.en),
       visibility: Math.random() < 0.85 ? 'public' : 'private',
       host, maxPlayers: 2 + Math.floor(Math.random() * 5), planets: 5 + Math.floor(Math.random() * 5),
     });
@@ -208,8 +213,8 @@ const Sim = {
   remove(g) { this.games = this.games.filter(x => x !== g); },
 
   join(g, pseudo) {
-    if (g.status !== 'waiting') return { ok: false, msg: g.status === 'playing' ? 'Cette partie est déjà en cours.' : 'Cette partie démarre, trop tard pour la rejoindre.' };
-    if (g.players.length >= g.maxPlayers) return { ok: false, msg: 'Cette partie est complète.' };
+    if (g.status !== 'waiting') return { ok: false, msg: g.status === 'playing' ? T('lob.inProgress') : T('lob.tooLate') };
+    if (g.players.length >= g.maxPlayers) return { ok: false, msg: T('srv.full2') };
     if (Net.room) Net.leaveRoom();
     g.players.push({ pseudo, me: true });
     Net.room = g;
@@ -314,7 +319,7 @@ const RealRoom = {
       this.transport.send(this.hostPeer, { k: 'ping' });
       if (Date.now() - (this.seen.get(this.hostPeer) || Date.now()) > PEER_TIMEOUT && Net.room && Net.room.real) {
         this.leave(); Net.room = null;
-        showScreen('scr-home'); showMenuToast("L'hôte ne répond plus : le salon a fermé.");
+        showScreen('scr-home'); showMenuToast(T('lob.hostSilent'));
       }
     }
   },
@@ -359,9 +364,9 @@ const RealRoom = {
     if (this.role === 'host') {
       const r = this.room;
       if (m.k === 'join') {
-        if (r.status !== 'waiting') { this.transport.send(peer, { k: 'refuse', msg: 'Cette partie a déjà commencé.' }); return; }
+        if (r.status !== 'waiting') { this.transport.send(peer, { k: 'refuse', msg: T('srv.started') }); return; }
         if (r.players.some(p => p.peer === peer)) return;
-        if (r.players.length >= r.maxPlayers) { this.transport.send(peer, { k: 'refuse', msg: 'Cette partie est complète.' }); return; }
+        if (r.players.length >= r.maxPlayers) { this.transport.send(peer, { k: 'refuse', msg: T('srv.full2') }); return; }
         let pseudo = String(m.pseudo || 'Joueur').slice(0, 16);
         while (r.players.some(p => p.pseudo === pseudo)) pseudo = pseudo.slice(0, 14) + Math.floor(Math.random() * 9 + 1);
         r.players.push({ pseudo, peer });
@@ -377,7 +382,7 @@ const RealRoom = {
       if (m.k === 'roster') { this.room.players = m.players; }
       else if (m.k === 'bye') {
         this.leave(); Net.room = null;
-        if (G.phase === 'menu') { showScreen('scr-home'); showMenuToast("L'hôte a fermé le salon."); }
+        if (G.phase === 'menu') { showScreen('scr-home'); showMenuToast(T('lob.hostClosed')); }
       } else if (m.k === 'start') {
         clearInterval(this.timer); this.timer = null;
         Net.room = null;

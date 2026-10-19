@@ -3,6 +3,7 @@
 // ============================================================
 
 function main() {
+  applyI18n();
   initRender();
   initMenu();
   initInput();

@@ -51,10 +51,10 @@ const Online = {
       this.ws = null;
       const wasOnline = this.status === 'online';
       this.status = 'retrying';
-      for (const w of this.waiting) { clearTimeout(w.timer); w.resolve({ k: 'error', msg: 'Connexion au serveur perdue.' }); }
+      for (const w of this.waiting) { clearTimeout(w.timer); w.resolve({ k: 'error', msg: T('net.lost') }); }
       this.waiting = [];
-      if (wasOnline && this.inGame && G.phase !== 'over') showToast('Connexion perdue — reconnexion…');
-      if (Net.room && Net.room.real && !this.inGame) { Net.room = null; if (G.phase === 'menu') { showScreen('scr-home'); showMenuToast('Connexion au serveur perdue.'); } }
+      if (wasOnline && this.inGame && G.phase !== 'over') showToast(T('net.reconnecting'));
+      if (Net.room && Net.room.real && !this.inGame) { Net.room = null; if (G.phase === 'menu') { showScreen('scr-home'); showMenuToast(T('net.lost')); } }
       this.scheduleRetry();
     };
     ws.onerror = () => {};
@@ -72,7 +72,7 @@ const Online = {
   async sendHello(pseudo, rejoinToken) {
     const auth = Account.enabled() && Account.session ? await Account.token() : null;
     this.awaitingRejoin = !!rejoinToken;
-    this.send({ k: 'hello', pseudo: pseudo || loadPseudo() || 'Pilote', auth: auth || undefined, token: rejoinToken || undefined });
+    this.send({ k: 'hello', pseudo: pseudo || loadPseudo() || 'Pilot', auth: auth || undefined, token: rejoinToken || undefined });
   },
 
   send(m) { if (this.isUp()) this.ws.send(JSON.stringify(m)); },
@@ -82,7 +82,7 @@ const Online = {
     return new Promise(resolve => {
       if (!this.isUp()) { resolve({ k: 'error', msg: this.statusText() }); return; }
       const w = { kinds, resolve };
-      w.timer = setTimeout(() => { this.waiting = this.waiting.filter(x => x !== w); resolve({ k: 'error', msg: 'Le serveur ne répond pas.' }); }, timeout);
+      w.timer = setTimeout(() => { this.waiting = this.waiting.filter(x => x !== w); resolve({ k: 'error', msg: T('net.noAnswer') }); }, timeout);
       this.waiting.push(w);
       this.send(m);
     });
@@ -95,13 +95,15 @@ const Online = {
 
   // --- Messages du serveur ---------------------------------------------------------
   onMessage(m) {
+    // Messages du serveur : jetons { k, p } traduits dans la langue du joueur
+    if (m && m.msg && typeof m.msg === 'object') m.msg = txt(m.msg);
     // Réponses aux requêtes en attente
     const i = this.waiting.findIndex(w => w.kinds.includes(m.k));
     if (i >= 0) { const w = this.waiting.splice(i, 1)[0]; clearTimeout(w.timer); w.resolve(m); }
 
     switch (m.k) {
       case 'welcome': {
-        if (m.authError && Account.session) { Account.clearSession(); onAccountChange(); showMenuToast(m.authError); }
+        if (m.authError && Account.session) { Account.clearSession(); onAccountChange(); showMenuToast(txt(m.authError)); }
         // Jeu et serveur doivent être à la même version
         const before = this.serverVersion;
         this.serverVersion = m.version || null;
@@ -111,8 +113,8 @@ const Online = {
         if (askedRejoin && !m.rejoined && this.inGame && Session.role === 'client' && G.phase !== 'over') {
           this.inGame = false; this.clearToken();
           hostLost(before && before !== m.version
-            ? 'Le serveur vient d\'être mis à jour : la partie a été interrompue. Rechargez la page pour rejouer.'
-            : "La partie n'est plus disponible (coupure trop longue).");
+            ? T('net.updatedMidGame')
+            : T('net.gameGone'));
         }
         if (this.mismatch && G.phase === 'menu') renderNetStatus();
         return;
@@ -133,7 +135,7 @@ const Online = {
         return;
       case 'closed':
         this.inGame = false; this.clearToken();
-        if (Session.role === 'client') hostLost(m.msg || 'Partie fermée.');
+        if (Session.role === 'client') hostLost(m.msg || T('net.closed'));
         return;
     }
     if (Session.role === 'client' && (m.k === 'snap' || m.k === 'res' || m.k === 'bye')) {
@@ -156,15 +158,14 @@ const Online = {
   },
 
   mismatchText() {
-    return `Une nouvelle version du jeu est disponible (jeu ${APP_VERSION}, serveur ${this.serverVersion}). ` +
-      'Rechargez la page ; si ce message reste, réessayez dans une minute.';
+    return T('net.mismatch', { game: APP_VERSION, server: this.serverVersion });
   },
 
   statusText() {
     if (this.status === 'online' && this.mismatch) return this.mismatchText();
-    if (this.status === 'online') return 'Connecté au serveur';
+    if (this.status === 'online') return T('net.online');
     const waited = this.firstFail ? (Date.now() - this.firstFail) / 1000 : 0;
-    if (waited > 90) return 'Serveur injoignable pour le moment : vous pouvez jouer en solo en attendant.';
-    return 'Connexion au serveur… (s\'il était en veille, son réveil peut prendre jusqu\'à une minute)';
+    if (waited > 90) return T('net.unreachable');
+    return T('net.connecting');
   },
 };

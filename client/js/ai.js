@@ -15,7 +15,7 @@
 // ============================================================
 
 const BOT_STYLES = ['colons', 'missiles', 'flotte'];
-const BOT_STYLE_LABELS = { colons: 'colons', missiles: 'missiles', flotte: 'vaisseaux' };
+const BOT_STYLE_LABELS = { colons: 'style.colons', missiles: 'style.missiles', flotte: 'style.fleet' }; // clés de traduction
 
 function lerp(a, b, t) { return a + (b - a) * t; }
 
@@ -34,7 +34,7 @@ function makeBotProfile() {
 }
 
 function skillLabel(skill) {
-  return skill < 0.25 ? 'très faible' : skill < 0.45 ? 'faible' : skill < 0.65 ? 'moyen' : skill < 0.85 ? 'fort' : 'expert';
+  return T(skill < 0.25 ? 'skill.0' : skill < 0.45 ? 'skill.1' : skill < 0.65 ? 'skill.2' : skill < 0.85 ? 'skill.3' : 'skill.4');
 }
 
 // --- Boucle de décision ---------------------------------------------------

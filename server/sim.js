@@ -14,7 +14,7 @@ const fs = require('fs');
 const path = require('path');
 
 const DIR = path.join(__dirname, '..', 'client', 'js');
-const FILES = ['config.js', 'world.js', 'game.js', 'fleet.js', 'diplomacy.js', 'ai.js', 'session.js'];
+const FILES = ['i18n.js', 'config.js', 'world.js', 'game.js', 'fleet.js', 'diplomacy.js', 'ai.js', 'session.js'];
 
 // Compilé une seule fois, exécuté dans chaque partie
 const scripts = FILES.map(f => new vm.Script(fs.readFileSync(path.join(DIR, f), 'utf8'), { filename: f }));

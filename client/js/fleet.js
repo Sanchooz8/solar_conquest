@@ -37,9 +37,9 @@ function storedShips(playerId, planet) {
 // Construire un vaisseau dans un spatioport de la planète (le moins rempli)
 function buildShip(player, planet) {
   const ports = spaceports(player.id, planet);
-  if (!ports.length) return { ok: false, msg: 'Aucun spatioport sur cette planète' };
+  if (!ports.length) return { ok: false, msg: T('err.noSpaceport') };
   const cost = shipCost(player.id);
-  if (player.money < cost) return { ok: false, msg: 'Argent insuffisant' };
+  if (player.money < cost) return { ok: false, msg: T('err.noMoney') };
   player.money -= cost;
   const port = ports.reduce((a, b) => ((a.ships || 0) <= (b.ships || 0) ? a : b));
   port.ships = (port.ships || 0) + 1;
@@ -62,7 +62,7 @@ function launchFleet(player, planet, count, target) {
   const ports = spaceports(player.id, planet).filter(c => (c.ships || 0) > 0);
   const stock = ports.reduce((s, c) => s + c.ships, 0);
   const n = Math.min(count, stock);
-  if (n <= 0) return { ok: false, msg: 'Aucun vaisseau en stock sur cette planète' };
+  if (n <= 0) return { ok: false, msg: T('err.noShip') };
 
   // Prélèvement port par port ; la flotte décolle du premier port utilisé
   let left = n;
@@ -153,7 +153,7 @@ function damageBuilding(cell, ownerColor) {
   const c = cellCentroid(cell);
   spawnBurst(c.x, c.y, '#ffb347', 8, 0.6);
   spawnBurst(c.x, c.y, ownerColor, 4, 0.5);
-  notify(cell.owner, `${BUILDING_NAMES[cell.building] || 'Bâtiment'} détruit par une flotte ennemie sur ${cell.planet.name}`);
+  notify(cell.owner, T('msg.fleetDestroyed', { b: T('b.' + cell.building), planet: cell.planet.name }));
   cell.building = null;
   cell.bhp = undefined;
   cell.missiles = undefined; cell.ships = undefined;
