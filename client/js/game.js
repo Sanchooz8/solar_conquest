@@ -400,6 +400,9 @@ function launchMissiles(player, planet, count, target) {
   const volley = missileVolley(player.id, planet, count, target);
   const n = volley.length;
   if (n === 0) return { ok: false, msg: 'Aucun missile chargé sur cette planète' };
+  const cost = CONFIG.missiles.launchCost;
+  if (player.money < cost) return { ok: false, msg: `Fonds insuffisants : ${cost} $ par envoi de missiles` };
+  player.money -= cost;
 
   // Chaque missile corrige son cap vers SON point quoi qu'il arrive (pas de
   // suivi des planètes)
@@ -707,6 +710,8 @@ function launchColonyModule(player, planet, share, targetPlanet, targetAng = nul
   if (colonists < C.minColonists) {
     return { ok: false, msg: `Pas assez de colons (${C.minColonists} min)` };
   }
+  if (player.money < C.launchCost) return { ok: false, msg: `Fonds insuffisants : ${C.launchCost} $ par envoi de colonisation` };
+  player.money -= C.launchCost;
 
   // Prélèvement proportionnel sur les territoires du joueur
   let left = colonists;

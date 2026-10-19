@@ -1020,3 +1020,6 @@ input[type="range"]::-webkit-slider-thumb {
 #minimap { position: fixed; right: 10px; bottom: 200px; width: 180px; height: 180px; z-index: 20; border-radius: 12px;
   background: rgba(8,10,20,0.72); border: 1px solid rgba(255,255,255,0.10); backdrop-filter: blur(6px); cursor: pointer; }
 #minimap[hidden] { display: none; }
+
+.ms-cost { font-family: var(--font-mono); font-size: 10px; color: #f5c542; opacity: 0.85; }
+.ms-max { font-size: 8.5px; font-weight: 800; letter-spacing: 0.06em; margin-left: 3px; color: #f5c542; vertical-align: middle; }

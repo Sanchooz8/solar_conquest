@@ -15,7 +15,7 @@ const UI = {
   snap: null,         // viseur aimanté { planet, ang (repère planète), wx, wy, a }
   aimingFleet: null,  // visée flotte : { mode: 'launch' } ou { mode: 'retarget', fleet }
   fleetCount: null,   // vaisseaux à lancer (null = tous)
-  missileCount: 1,    // nombre de missiles du tir groupé
+  missileCount: null, // nombre de missiles du tir groupé (null = le maximum)
   colonyShare: 0.25,  // pourcentage de la pop planétaire embarquée dans le module
   mouse: { x: 0, y: 0 },
 };
@@ -229,8 +229,8 @@ function drawSun(t) {
 
 // --- Orbites ------------------------------------------------------
 function drawOrbits() {
-  ctx.strokeStyle = 'rgba(255,255,255,0.07)';
-  ctx.lineWidth = 1 / UI.cam.zoom;
+  ctx.strokeStyle = 'rgba(255,255,255,0.16)';
+  ctx.lineWidth = 1.3 / UI.cam.zoom;
   for (const p of G.planets) {
     ctx.beginPath();
     ctx.arc(0, 0, p.orbitRadius, 0, TAU());
@@ -1039,7 +1039,7 @@ function drawAimRail(t, color) {
 function drawVolleyReticles(t) {
   if (!UI.lock) { drawReticle(t, '#ff2a00'); return; }
   const w = screenToWorld(UI.mouse.x, UI.mouse.y);
-  const shots = missileVolley(G.me, UI.lock, UI.missileCount, w);
+  const shots = missileVolley(G.me, UI.lock, missileCountNow(), w);
   if (shots.length <= 1) { drawReticle(t, '#ff2a00'); return; }
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
   const color = '#ff2a00';

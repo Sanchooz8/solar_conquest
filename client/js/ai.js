@@ -225,6 +225,7 @@ function aimAngleError(bot) { return (Math.random() * 2 - 1) * CONFIG.ai.landErr
 // Colonisation : planète neutre de préférence, sinon planète habitée faible
 function botColonize(bot, info) {
   const P = bot.profile;
+  if (bot.money < CONFIG.colony.launchCost) return false;
   const sources = [...info.values()].filter(it => it.mine > 0 && colonyCenters(bot.id, it.planet).length);
   if (!sources.length) return false;
   const src = sources.sort((a, b) => b.myPop - a.myPop)[0];
@@ -276,6 +277,7 @@ function predictCellPos(cell, t) {
 // du mouvement de la cible et une erreur de visée selon le niveau
 function botMissiles(bot, info) {
   const P = bot.profile, A = CONFIG.ai, M = CONFIG.missiles;
+  if (bot.money < M.launchCost) return false;
   let src = null, loaded = 0;
   for (const it of info.values()) {
     if (!it.mine) continue;

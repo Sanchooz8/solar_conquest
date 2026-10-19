@@ -206,13 +206,17 @@ function updateBuildbar() {
 }
 
 // --- Panneau missiles & colonisation (bas à droite) -------------------
+function missileCountNow() { return UI.missileCount ?? Math.max(1, missileMax()); }
+
 function initMissilebar() {
+  // Par défaut (null) : le maximum de missiles prêts
   el('ms-minus').addEventListener('click', () => {
-    UI.missileCount = Math.max(1, UI.missileCount - 1);
+    UI.missileCount = Math.max(1, missileCountNow() - 1);
     updateMissilebar();
   });
   el('ms-plus').addEventListener('click', () => {
-    UI.missileCount = Math.min(missileMax(), UI.missileCount + 1);
+    const n = missileCountNow() + 1;
+    UI.missileCount = n >= missileMax() ? null : n;
     updateMissilebar();
   });
   el('btn-launch').addEventListener('click', () => {
@@ -330,12 +334,14 @@ function updateMissilebar() {
 
   if (hasSilo) {
     const max = missileMax();
-    UI.missileCount = Math.max(1, Math.min(UI.missileCount, Math.max(1, max)));
-    el('ms-value').textContent = UI.missileCount;
-    el('ms-minus').disabled = UI.missileCount <= 1;
-    el('ms-plus').disabled = UI.missileCount >= Math.max(1, max);
+    if (UI.missileCount !== null && UI.missileCount >= max) UI.missileCount = null;
+    const n = missileCountNow();
+    el('ms-value').innerHTML = UI.missileCount === null && max ? `${max}<small class="ms-max">MAX</small>` : String(UI.missileCount === null ? 0 : n);
+    el('ms-minus').disabled = n <= 1;
+    el('ms-plus').disabled = UI.missileCount === null;
+    el('ms-cost').textContent = CONFIG.missiles.launchCost + ' $ / envoi';
     const btn = el('btn-launch');
-    btn.disabled = max === 0;
+    btn.disabled = max === 0 || G.players[G.me].money < CONFIG.missiles.launchCost;
     btn.classList.toggle('active', UI.aiming);
     updateSiloGauges(max);
   }
@@ -344,7 +350,8 @@ function updateMissilebar() {
     el('co-minus').disabled = UI.colonyShare <= 0.05;
     el('co-plus').disabled = UI.colonyShare >= 0.90;
     const btn = el('btn-colony');
-    btn.disabled = colonyColonists() < CONFIG.colony.minColonists;
+    el('co-cost').textContent = CONFIG.colony.launchCost + ' $ / envoi';
+    btn.disabled = colonyColonists() < CONFIG.colony.minColonists || G.players[G.me].money < CONFIG.colony.launchCost;
     btn.classList.toggle('active', UI.aimingColony);
   }
 }
@@ -613,7 +620,7 @@ function handleClick(sx, sy) {
 
   // Mode visée missile : le clic définit la cible du tir groupé
   if (UI.aiming) {
-    issue({ t: 'missiles', p: UI.lock.id, n: UI.missileCount, x: w.x, y: w.y }, r => {
+    issue({ t: 'missiles', p: UI.lock.id, n: missileCountNow(), x: w.x, y: w.y }, r => {
       if (!r.ok) showToast(r.msg);
       else showToast(r.launched > 1 ? `${r.launched} missiles lancés !` : 'Missile lancé !', true);
     });

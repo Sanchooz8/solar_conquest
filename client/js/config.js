@@ -94,6 +94,7 @@ const CONFIG = {
   // qu'une planète (~20-50 u/s), et il suit sa planète cible pendant le vol
   // (les boucliers ne l'arrêtent pas — il transporte des troupes).
   colony: {
+    launchCost: 1000,         // $ par envoi de module de colonisation
     speed: 80,                // vitesse de croisière
     accel: 70,                // poussée jusqu'à la vitesse de croisière
     turn: 2.6,                // virage max (rad/s) — suivi continu de la planète
@@ -163,6 +164,7 @@ const CONFIG = {
   },
 
   missiles: {
+    launchCost: 50,           // $ par envoi (une salve, quel que soit le nombre de missiles)
     riseTime: 1.3,            // s de montée verticale avant la balistique
     riseSpeed: 30,            // unités/s pendant la montée
     flightSpeed: 120,         // vitesse de croisière en vol

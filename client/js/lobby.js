@@ -216,7 +216,7 @@ function enterGameScreen() {
   showPrompt('Cliquez sur une planète pour la <strong>verrouiller</strong>, puis sur un territoire de sa couronne pour fonder votre colonie.');
   UI.lock = null; UI.targetZoom = null; UI.placing = null;
   UI.aiming = false; UI.aimingColony = false; UI.aimingFleet = null;
-  UI.missileCount = 1; UI.colonyShare = 0.25; UI.defeatShown = false; UI.founding = false;
+  UI.missileCount = null; UI.colonyShare = 0.25; UI.defeatShown = false; UI.founding = false;
 }
 
 // --- Compte -------------------------------------------------------------

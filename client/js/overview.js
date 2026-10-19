@@ -95,6 +95,9 @@ function drawMinimap(t) {
   const show = G.phase === 'playing' || G.phase === 'placement';
   cv.hidden = !show;
   if (!show) return;
+  // Toujours au-dessus du panneau de lancement (dont la hauteur varie)
+  const mb = el('missilebar');
+  cv.style.bottom = (mb.hidden ? 110 : Math.max(110, innerHeight - mb.getBoundingClientRect().top + 10)) + 'px';
   const S = Minimap.size;
   if (cv.width !== S * DPR) { cv.width = cv.height = S * DPR; cv.style.width = cv.style.height = S + 'px'; }
   const g = cv.getContext('2d');
