@@ -62,27 +62,13 @@ function screenToWorld(sx, sy) {
 }
 
 // --- Vue stratégique ----------------------------------------------------
-// De loin, les planètes restent lisibles et cliquables : sous le zoom
-// STRAT_ZOOM, elles cessent toutes de rétrécir à l'écran (même seuil pour
-// toutes, les tailles relatives sont conservées). Elles sont dessinées
-// agrandies autour de leur centre, sans chevaucher leurs voisines ni le
-// soleil. Les positions réelles (orbites, objets en vol) ne changent pas.
+// Sous le zoom STRAT_ZOOM (même seuil pour toutes les planètes), on passe
+// en gestion à distance : anneau des propriétaires autour de chaque planète
+// et territoires cliquables sur toute la bordure. Les planètes gardent
+// leur taille réelle.
 const STRAT_ZOOM = 1.7;
-function planetScale(p) { return p._k || 1; }
-function strategic(p) { return (p._k || 1) > 1.05; }
-
-function computePlanetScales() {
-  const z = UI.cam.zoom;
-  for (const p of G.planets) {
-    const want = STRAT_ZOOM / z;
-    if (want <= 1) { p._k = 1; continue; }
-    let cap = (Math.hypot(p.x, p.y) - CONFIG.system.sunRadius * 1.4) / p.radius;
-    for (const q of G.planets) {
-      if (q !== p) cap = Math.min(cap, 0.48 * Math.hypot(p.x - q.x, p.y - q.y) / p.radius);
-    }
-    p._k = Math.max(1, Math.min(want, cap));
-  }
-}
+function planetScale(p) { return 1; }
+function strategic(p) { return UI.cam.zoom < STRAT_ZOOM; }
 
 // Planète et territoire sous un point du monde. En vue stratégique, le
 // territoire se choisit à l'angle (toute la bordure de la planète est
@@ -90,13 +76,12 @@ function computePlanetScales() {
 function pickAt(w) {
   for (let i = G.planets.length - 1; i >= 0; i--) {
     const p = G.planets[i];
-    const k = planetScale(p);
     const d = Math.hypot(w.x - p.x, w.y - p.y);
-    const strat = k > 1.05;
-    if (d > p.radius * k + (strat ? 14 / UI.cam.zoom : 0)) continue;
+    const strat = strategic(p);
+    if (d > p.radius + (strat ? 14 / UI.cam.zoom : 0)) continue;
     let cell = null;
     if (strat) {
-      if (d >= p.radius * k * 0.55) {
+      if (d >= p.radius * 0.55) {
         const ang = normAngle(Math.atan2(w.y - p.y, w.x - p.x) - p.rotation);
         cell = p.cells[0][Math.min(p.sectors - 1, Math.floor(ang / p.sectorAngle))];
         if (cell.destroyed) cell = null;
@@ -109,7 +94,7 @@ function pickAt(w) {
   return null;
 }
 
-// Anneau de couleur par joueur autour d'une planète agrandie : la carte se
+// Anneau de couleur par joueur autour d'une planète en gestion à distance : la carte se
 // lit d'un coup d'œil (qui tient quoi, où sont les combats)
 function drawStrategicRing(p, t) {
   const n = p.sectors, sa = p.sectorAngle;
@@ -183,18 +168,9 @@ function render(t) {
 
   drawSun(t);
   drawOrbits();
-  computePlanetScales();
   for (const p of G.planets) {
-    const k = planetScale(p);
-    if (k <= 1) { drawPlanet(p, t); continue; }
-    // Vue stratégique : planète agrandie autour de son centre. Le zoom est
-    // multiplié le temps du dessin pour que traits et icônes gardent leur
-    // taille à l'écran.
-    const z = UI.cam.zoom;
-    ctx.save();
-    ctx.translate(p.x, p.y); ctx.scale(k, k); ctx.translate(-p.x, -p.y);
-    UI.cam.zoom = z * k;
-    try { drawPlanet(p, t); drawStrategicRing(p, t); } finally { UI.cam.zoom = z; ctx.restore(); }
+    drawPlanet(p, t);
+    if (strategic(p)) drawStrategicRing(p, t); // gestion à distance
   }
   drawShadows(); // ombres des vaisseaux sur les planètes survolées
   if (CONFIG.aa.showCone) drawAACones();
@@ -1133,7 +1109,7 @@ function drawAACones() {
   const half = CONFIG.aa.coneHalfAngle * Math.PI / 180;
   for (const p of G.planets) {
     for (const cell of planetCells(p)) {
-      if (cell.destroyed || cell.owner === null || cell.building !== 'aa' || strategic(p)) continue;
+      if (cell.destroyed || cell.owner === null || cell.building !== 'aa') continue;
       const f = aaFrame(cell);
       const col = G.players[cell.owner].color;
       const ready = (cell.aaT || 0) >= CONFIG.aa.fireInterval;
@@ -1250,7 +1226,6 @@ function drawPlanetShade(pl) {
 function castShadow(x, y, size, heading, alt) {
   const S = CONFIG.ui.shadow;
   for (const p of G.planets) {
-    if (strategic(p)) continue; // planète agrandie : pas d'ombre (positions non réalistes)
     const d = Math.hypot(x - p.x, y - p.y);
     if (d - p.radius > S.reach) continue;
     const away = sunDir(p.x, p.y);

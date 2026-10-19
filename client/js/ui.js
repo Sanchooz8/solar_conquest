@@ -542,7 +542,7 @@ function updateHover(sx, sy) {
   if (G.phase === 'menu' || G.phase === 'over') { UI.hover = null; UI.hoverPlanet = null; return; }
   const w = screenToWorld(sx, sy);
   UI.hover = null; UI.hoverPlanet = null;
-  const hit = pickAt(w); // tient compte des planètes agrandies (vue stratégique)
+  const hit = pickAt(w); // en gestion à distance : toute la bordure est cliquable
   if (hit) { UI.hoverPlanet = hit.planet; UI.hover = hit.cell; }
   canvas.style.cursor = (UI.aiming || UI.aimingColony || UI.aimingFleet) ? 'none' : (UI.placing ? 'crosshair' : (UI.hoverPlanet ? 'pointer' : 'default'));
 }
