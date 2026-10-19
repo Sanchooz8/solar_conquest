@@ -327,3 +327,22 @@ setInterval(() => {
 }, 15000);
 
 server.listen(PORT, () => console.log(`Solar Conquest ${VERSION} : serveur prêt sur le port ${PORT}`));
+
+// --- Rester éveillé (offre gratuite de Render) -----------------------------------
+// Render endort un service gratuit après 15 min sans requête ENTRANTE. Le serveur
+// s'appelle donc lui-même par son adresse publique toutes les 10 minutes : la
+// requête repasse par Render et compte comme du trafic.
+// Render fournit RENDER_EXTERNAL_URL ; KEEP_AWAKE=off pour désactiver.
+// Coût : ~744 h/mois en continu, sous les 750 h gratuites (si c'est le seul
+// service gratuit du compte).
+const SELF_URL = process.env.KEEP_AWAKE_URL || process.env.RENDER_EXTERNAL_URL;
+if (SELF_URL && process.env.KEEP_AWAKE !== 'off') {
+  const ping = async () => {
+    try {
+      const r = await fetch(SELF_URL.replace(/\/+$/, '') + '/?keepalive=1', { signal: AbortSignal.timeout(15000) });
+      if (!r.ok) console.warn('Maintien en éveil : réponse', r.status);
+    } catch (e) { console.warn('Maintien en éveil : échec', e.message); }
+  };
+  setInterval(ping, 10 * 60 * 1000);
+  console.log('Maintien en éveil actif :', SELF_URL);
+}
