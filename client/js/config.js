@@ -164,7 +164,7 @@ const CONFIG = {
   },
 
   missiles: {
-    launchCost: 50,           // $ par envoi (une salve, quel que soit le nombre de missiles)
+    launchCost: 50,           // $ par missile tiré
     riseTime: 1.3,            // s de montée verticale avant la balistique
     riseSpeed: 30,            // unités/s pendant la montée
     flightSpeed: 120,         // vitesse de croisière en vol

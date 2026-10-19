@@ -281,9 +281,10 @@ function initMissilebar() {
 }
 
 // Nombre de silos chargés sur la planète verrouillée (= nb max de missiles)
+// Missiles tirables : chargés ET payables (CONFIG.missiles.launchCost chacun)
 function missileMax() {
   if (!UI.lock) return 0;
-  return loadedSilos(G.me, UI.lock).length;
+  return Math.min(loadedSilos(G.me, UI.lock).length, Math.floor(G.players[G.me].money / CONFIG.missiles.launchCost));
 }
 
 // Colons embarquables : pourcentage choisi de la pop du joueur sur la planète
@@ -339,11 +340,12 @@ function updateMissilebar() {
     el('ms-value').innerHTML = UI.missileCount === null && max ? `${max}<small class="ms-max">MAX</small>` : String(UI.missileCount === null ? 0 : n);
     el('ms-minus').disabled = n <= 1;
     el('ms-plus').disabled = UI.missileCount === null;
-    el('ms-cost').textContent = CONFIG.missiles.launchCost + ' $ / envoi';
+    const unit = CONFIG.missiles.launchCost;
+    el('ms-cost').textContent = max ? `${unit} $ / missile · salve ${unit * n} $` : `${unit} $ / missile`;
     const btn = el('btn-launch');
-    btn.disabled = max === 0 || G.players[G.me].money < CONFIG.missiles.launchCost;
+    btn.disabled = max === 0;
     btn.classList.toggle('active', UI.aiming);
-    updateSiloGauges(max);
+    updateSiloGauges(loadedSilos(G.me, UI.lock).length);
   }
   if (hasColony) {
     el('co-value').textContent = Math.round(UI.colonyShare * 100) + ' %';

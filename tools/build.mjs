@@ -19,6 +19,14 @@ let out = html
   .replace(/\s*<script src="js\/[^"]+"><\/script>/g, '')
   .replace('</body>', () => `<script>\n${js}\n</script>\n</body>`);
 
+// Images (illustrations du tutoriel) : intégrées au fichier unique
+const MIME = { webp: 'image/webp', png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', svg: 'image/svg+xml' };
+let images = 0;
+out = out.replace(/src="(img\/[^"]+\.(webp|png|jpe?g|svg))"/g, (m, f, ext) => {
+  images++;
+  return `src="data:${MIME[ext]};base64,${readFileSync(join(client, f)).toString('base64')}"`;
+});
+
 mkdirSync(join(root, 'dist'), { recursive: true });
 writeFileSync(join(root, 'dist', 'index.html'), out);
-console.log(`dist/index.html : version ${version}, ${scripts.length} scripts, ${(out.length / 1024).toFixed(0)} Ko`);
+console.log(`dist/index.html : version ${version}, ${scripts.length} scripts, ${images} images, ${(out.length / 1024).toFixed(0)} Ko`);

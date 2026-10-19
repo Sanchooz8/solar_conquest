@@ -44,6 +44,10 @@ Les comptes (e-mail + mot de passe) sont gérés par Supabase ; ils restent facu
 
 Le serveur vérifie le jeton de connexion de chaque joueur, réserve les pseudos des comptes (un invité ne peut pas les prendre) et enregistre chaque partie en ligne terminée (table `matches`, statistiques dans `player_stats`).
 
+## Tutoriel « Comment jouer ? »
+
+Le tutoriel du menu principal est dans `client/index.html` (bloc `#howto`), à mettre à jour à chaque évolution du jeu. Les chiffres (coûts, durées…) sont lus dans `CONFIG` grâce aux attributs `data-cfg` et restent justes tout seuls. Les illustrations sont dans `client/img/tuto/` ; `python3 tools/tuto_captures.py` les refait à partir du vrai jeu. Le build les intègre au fichier unique.
+
 ## Versions
 
 Le numéro de version vient de `package.json` : le jeu l'affiche en bas de l'accueil et le serveur le donne à chaque connexion. Si le jeu et le serveur n'ont pas la même version, le jeu propose de recharger la page et n'ouvre pas de partie en ligne en attendant. Penser à augmenter la version à chaque mise à jour.

@@ -397,12 +397,15 @@ function missileVolley(playerId, planet, count, target) {
 }
 
 function launchMissiles(player, planet, count, target) {
-  const volley = missileVolley(player.id, planet, count, target);
+  // Chaque missile coûte CONFIG.missiles.launchCost : la salve est limitée
+  // à ce que le joueur peut payer
+  const unit = CONFIG.missiles.launchCost;
+  const affordable = Math.floor(player.money / unit);
+  if (affordable < 1 && loadedSilos(player.id, planet).length) return { ok: false, msg: `Fonds insuffisants : ${unit} $ par missile` };
+  const volley = missileVolley(player.id, planet, Math.min(count, affordable), target);
   const n = volley.length;
   if (n === 0) return { ok: false, msg: 'Aucun missile chargé sur cette planète' };
-  const cost = CONFIG.missiles.launchCost;
-  if (player.money < cost) return { ok: false, msg: `Fonds insuffisants : ${cost} $ par envoi de missiles` };
-  player.money -= cost;
+  player.money -= unit * n;
 
   // Chaque missile corrige son cap vers SON point quoi qu'il arrive (pas de
   // suivi des planètes)
