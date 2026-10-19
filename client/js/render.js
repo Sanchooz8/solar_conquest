@@ -62,18 +62,19 @@ function screenToWorld(sx, sy) {
 }
 
 // --- Vue stratégique ----------------------------------------------------
-// De loin, une planète reste assez grande pour être lisible et cliquable
-// (au moins STRAT_MIN_PX de rayon à l'écran) : elle est dessinée agrandie
-// autour de son centre, sans chevaucher ses voisines ni le soleil. Les
-// positions réelles (orbites, objets en vol) ne changent pas.
-const STRAT_MIN_PX = 46;
+// De loin, les planètes restent lisibles et cliquables : sous le zoom
+// STRAT_ZOOM, elles cessent toutes de rétrécir à l'écran (même seuil pour
+// toutes, les tailles relatives sont conservées). Elles sont dessinées
+// agrandies autour de leur centre, sans chevaucher leurs voisines ni le
+// soleil. Les positions réelles (orbites, objets en vol) ne changent pas.
+const STRAT_ZOOM = 1.7;
 function planetScale(p) { return p._k || 1; }
 function strategic(p) { return (p._k || 1) > 1.05; }
 
 function computePlanetScales() {
   const z = UI.cam.zoom;
   for (const p of G.planets) {
-    const want = STRAT_MIN_PX / (p.radius * z);
+    const want = STRAT_ZOOM / z;
     if (want <= 1) { p._k = 1; continue; }
     let cap = (Math.hypot(p.x, p.y) - CONFIG.system.sunRadius * 1.4) / p.radius;
     for (const q of G.planets) {
